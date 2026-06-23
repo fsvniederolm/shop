@@ -66,12 +66,12 @@ input, select { width:100%; padding:11px; border:1px solid #ccc; border-radius:1
     <section class="panel customer">
       <h2>Spieler- und Kontaktdaten</h2>
       <div class="grid">
-        <div><label>Vorname Spieler</label><input id="vorname" placeholder="Max"></div>
-        <div><label>Nachname Spieler</label><input id="nachname" placeholder="Mustermann"></div>
-        <div><label>E-Mail Besteller</label><input id="email" placeholder="name@mail.de"></div>
-        <div><label>Telefon</label><input id="telefon" placeholder="06136 ..."></div>
-        <div><label>Jahrgang</label><input id="jahrgang" placeholder="2017"></div>
-        <div><label>Mannschaft</label><select id="mannschaft">
+        <div><label>Vorname Spieler *</label><input id="vorname" placeholder="Max" required></div>
+        <div><label>Nachname Spieler *</label><input id="nachname" placeholder="Mustermann" required></div>
+        <div><label>E-Mail Besteller *</label><input id="email" type="email" placeholder="name@mail.de" required></div>
+        <div><label>Telefon *</label><input id="telefon" placeholder="06136 ..." required></div>
+        <div><label>Jahrgang *</label><input id="jahrgang" placeholder="2017" required></div>
+        <div><label>Mannschaft *</label><select id="mannschaft" required>
           <option>G-Jugend</option><option>F-Jugend</option><option>E-Jugend</option><option>D-Jugend</option><option>C-Jugend</option><option>B-Jugend</option><option>A-Jugend</option><option>Aktive</option>
         </select></div>
       </div>
@@ -93,6 +93,7 @@ input, select { width:100%; padding:11px; border:1px solid #ccc; border-radius:1
       <div class="pay"><strong>Banküberweisung</strong><br>Volksbank Darmstadt Mainz<br>IBAN: DE37 5519 0000 0037 6010 10</div>
     </div>
     <p class="small"><b>Verwendungszweck:</b><br><span id="vwz">Vor- und Nachname des Spielers Vereinskleidung 2026</span></p>
+    <div id="formError" class="note" style="display:none;background:#fff7ed;border-left-color:#f59e0b;"></div>
     <button class="checkout" onclick="submitOrder()">Verbindlich bestellen</button>
     <div id="result" class="mail-preview"></div>
   </aside>
@@ -115,13 +116,18 @@ function shoeCalc(v) {
 function currentPrice(item, id) {
   const sizeEl = document.getElementById('size_'+id);
   const shoeEl = document.getElementById('shoe_'+id);
+  const qtyEl = document.getElementById('qty_'+id);
   const size = sizeEl ? sizeEl.value : '';
   const base = isChildSize(size) ? item.child : item.adult;
   const ini = document.getElementById('ini_'+id)?.checked ? 3.5 : 0;
   const badge = document.getElementById('badge_'+id)?.checked ? 4.5 : 0;
   const num = document.getElementById('num_'+id)?.checked ? 3.5 : 0;
-  const price = base + ini + badge + num;
+  const qty = Math.max(1, parseInt(qtyEl?.value || '1', 10));
+  const unit = base + ini + badge + num;
+  const price = unit * qty;
   document.getElementById('price_'+id).textContent = euro(price);
+  const unitEl = document.getElementById('unit_'+id);
+  if(unitEl) unitEl.textContent = qty > 1 ? 'Einzelpreis: ' + euro(unit) : '';
   if(shoeEl) document.getElementById('shoeres_'+id).textContent = shoeCalc(shoeEl.value) ? 'Ermittelte Größe: '+shoeCalc(shoeEl.value) : 'Schuhgröße eingeben';
   return price;
 }
@@ -135,8 +141,8 @@ function renderProducts() {
       <div class="imgbox">Artikelbild<br><span class="small">BildURL in SharePoint/Excel hinterlegen</span></div>
       <h3>${it.name}</h3>
       <div><span class="badge">${it.category}</span></div>
-      <div>Aktueller Preis: <span class="price" id="price_${idx}">${euro(it.child)}</span></div>
-      <div class="row"><div>${sizeInput}</div><div><label>Menge</label><input id="qty_${idx}" type="number" value="1" min="1"></div></div>
+      <div>Aktueller Preis: <span class="price" id="price_${idx}">${euro(it.child)}</span><br><span class="small" id="unit_${idx}"></span></div>
+      <div class="row"><div>${sizeInput}</div><div><label>Menge</label><input id="qty_${idx}" type="number" value="1" min="1" oninput="currentPrice(items[${idx}],${idx})"></div></div>
       <div class="opts">
         ${it.initials ? `<label class="optline"><input type="checkbox" id="ini_${idx}" onchange="currentPrice(items[${idx}],${idx})"> Initialen +3,50 €</label><input id="initxt_${idx}" placeholder="z.B. BM">` : ''}
         ${it.badge ? `<label class="optline"><input type="checkbox" id="badge_${idx}" onchange="currentPrice(items[${idx}],${idx})"> Wappen +4,50 €</label>` : ''}
@@ -153,6 +159,7 @@ function addToCart(idx) {
   const size = it.category === 'Schuhgröße' ? '' : document.getElementById('size_'+idx).value;
   const shoe = it.category === 'Schuhgröße' ? document.getElementById('shoe_'+idx).value : '';
   const resolved = it.category === 'Schuhgröße' ? shoeCalc(shoe) : size;
+  if(it.category === 'Schuhgröße' && !resolved) { alert('Bitte Schuhgröße eingeben.'); return; }
   const base = isChildSize(size) ? it.child : it.adult;
   const ini = document.getElementById('ini_'+idx)?.checked ? 3.5 : 0;
   const badge = document.getElementById('badge_'+idx)?.checked ? 4.5 : 0;
@@ -177,11 +184,36 @@ function renderCart() {
   const name = (document.getElementById('vorname').value + ' ' + document.getElementById('nachname').value).trim();
   document.getElementById('vwz').textContent = (name || 'Vor- und Nachname des Spielers') + ' Vereinskleidung 2026';
 }
-['vorname','nachname'].forEach(id=>document.addEventListener('input', e=>renderCart()));
+['vorname','nachname'].forEach(id=>document.getElementById(id).addEventListener('input', renderCart));
 function submitOrder() {
-  const vor = document.getElementById('vorname').value || 'Max';
-  const nach = document.getElementById('nachname').value || 'Mustermann';
-  const email = document.getElementById('email').value || 'besteller@example.de';
+  const requiredFields = [
+    ['vorname','Vorname Spieler'], ['nachname','Nachname Spieler'], ['email','E-Mail Besteller'],
+    ['telefon','Telefon'], ['jahrgang','Jahrgang'], ['mannschaft','Mannschaft']
+  ];
+  const missing = requiredFields.filter(([id]) => !String(document.getElementById(id).value || '').trim()).map(([,label])=>label);
+  const err = document.getElementById('formError');
+  if(missing.length) {
+    err.style.display = 'block';
+    err.innerHTML = '<b>Bitte Pflichtfelder ausfüllen:</b><br>' + missing.join(', ');
+    document.getElementById(requiredFields.find(([id]) => !String(document.getElementById(id).value || '').trim())[0]).focus();
+    return;
+  }
+  const emailEl = document.getElementById('email');
+  if(!emailEl.checkValidity()) {
+    err.style.display = 'block';
+    err.innerHTML = '<b>Bitte eine gültige E-Mail-Adresse eingeben.</b>';
+    emailEl.focus();
+    return;
+  }
+  if(!cart.length) {
+    err.style.display = 'block';
+    err.innerHTML = '<b>Bitte mindestens einen Artikel in den Warenkorb legen.</b>';
+    return;
+  }
+  err.style.display = 'none';
+  const vor = document.getElementById('vorname').value.trim();
+  const nach = document.getElementById('nachname').value.trim();
+  const email = document.getElementById('email').value.trim();
   const team = document.getElementById('mannschaft').value;
   const order = '2026-' + String(Math.floor(Math.random()*9000)+1000);
   const sum = cart.reduce((a,c)=>a+c.line,0);
