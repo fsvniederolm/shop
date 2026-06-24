@@ -315,7 +315,9 @@ Aufgabe Kassierer:
 Bitte Zahlungseingang prüfen.
 
 Hinweis:
-Diese Bestellung wurde im aktuellen Testaufbau zusätzlich automatisch an die Sport-Weber-Testadresse gesendet:
+Die Sport-Weber-Testadresse ist aktuell noch nicht als CC aktiv, weil Web3Forms CC nur im Pro-Tarif erlaubt.
+Die Daten für Sport Weber sind unten in dieser Mail enthalten.
+Testadresse Sport Weber:
 ${SPORT_WEBER_EMAIL}
 
 Kundendaten sind enthalten, damit Sport Weber den Kunden kontaktieren kann, sobald die Bestellung abholbereit ist.`;
@@ -345,7 +347,6 @@ Telefon: ${customer.telefon}`;
       from_name: "FSV Nieder-Olm Vereinskleidung",
       email: customer.email,
       replyto: REPLY_TO_EMAIL,
-      ccemail: `${KASSIERER_EMAIL},${SPORT_WEBER_EMAIL}`,
       message: kassiererText + "\\n\\n----------------------------------------\\n\\nMAIL AN SPORT WEBER TEST:\\n\\n" + sportWeberText,
       autoresponse: bestellerText,
 
@@ -364,8 +365,8 @@ Telefon: ${customer.telefon}`;
 Bestellnummer: ${orderId}
 
 Eine Bestellbestätigung wurde an ${customer.email} gesendet.
-Der Kassierer wurde unter ${KASSIERER_EMAIL} informiert.
-Die Testadresse für Sport Weber (${SPORT_WEBER_EMAIL}) wurde ebenfalls informiert.
+Die Bestellung wurde an die bei Web3Forms hinterlegte Empfängeradresse gesendet.
+Die Sport-Weber-Testdaten sind in der Mail enthalten.
 
 Die Bestellung wird erst nach Zahlungseingang weiterverarbeitet.`;
   } catch (err) {
