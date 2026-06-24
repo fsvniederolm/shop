@@ -63,6 +63,8 @@ const KASSIERER_EMAIL = "ugur.altan@gmx.de";
 const REPLY_TO_EMAIL = "kassierer@fsv-nieder-olm.de";
 const PAYPAL_HINWEIS = "@FSVNO";
 const BANK_HINWEIS = "Volksbank Darmstadt Mainz, IBAN: DE37 5519 0000 0037 6010 10";
+const SUPABASE_URL = "https://ibhtvjaawinpcwvbwzct.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_omPVDjNvHQ5SULxKhJQqUA_-rCJ0PL3";
 </script>
 
 </head>
@@ -310,6 +312,38 @@ ${lines}
 Gesamtbetrag: ${euro(sum)}`;
 }
 
+
+async function saveOrderToSupabase(orderId, customer, sum, orderText) {
+  const payload = {
+    order_id: orderId,
+    vorname: customer.vorname,
+    nachname: customer.nachname,
+    email: customer.email,
+    telefon: customer.telefon,
+    jahrgang: customer.jahrgang,
+    mannschaft: customer.mannschaft,
+    gesamtbetrag: Number(sum.toFixed(2)),
+    bestellung: orderText,
+    status: "eingegangen"
+  };
+
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_PUBLISHABLE_KEY,
+      "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=minimal"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error("Supabase konnte die Bestellung nicht speichern: " + errorText);
+  }
+}
+
 async function sendEmail(templateId, params) {
   return emailjs.send(EMAILJS_SERVICE_ID, templateId, params);
 }
@@ -370,6 +404,8 @@ Telefon: ${customer.telefon}`;
   box.textContent = 'Bestellung wird gesendet ... bitte kurz warten.';
 
   try {
+    await saveOrderToSupabase(orderId, customer, sum, orderText);
+
     emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
     await sendEmail(EMAILJS_TEMPLATE_BESTELLER, {
