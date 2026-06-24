@@ -52,26 +52,11 @@ input, select { width:100%; padding:11px; border:1px solid #ccc; border-radius:1
 @media(max-width:700px) { .grid,.product-grid {grid-template-columns:1fr;} h1{font-size:21px} .logo{width:62px;height:62px} }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
-/*
-  E-Mail-Versand über EmailJS:
-  1. Kostenlosen Account auf emailjs.com anlegen
-  2. E-Mail-Service verbinden
-  3. Drei Templates anlegen:
-     - Besteller-Bestätigung
-     - Kassierer-Info
-     - Sport-Weber-Freigabe
-  4. Die IDs unten ersetzen
-*/
-const EMAILJS_PUBLIC_KEY = "HIER_DEIN_EMAILJS_PUBLIC_KEY_EINTRAGEN";
-const EMAILJS_SERVICE_ID = "HIER_DEIN_EMAILJS_SERVICE_ID_EINTRAGEN";
-const EMAILJS_TEMPLATE_BESTELLER = "HIER_TEMPLATE_BESTELLER_ID_EINTRAGEN";
-const EMAILJS_TEMPLATE_KASSIERER = "HIER_TEMPLATE_KASSIERER_ID_EINTRAGEN";
-const EMAILJS_TEMPLATE_SPORT_WEBER = "HIER_TEMPLATE_SPORT_WEBER_ID_EINTRAGEN";
-
-const KASSIERER_EMAIL = "ugur.altan@web.de";
-const SPORT_WEBER_EMAIL = "ugur.altan@gmx.de";
+const WEB3FORMS_ACCESS_KEY = "e78ae4ca-f3f1-4075-83db-0995a59b89e6";
+const KASSIERER_EMAIL = "kassierer@fsv-nieder-olm.de";
+const SPORT_WEBER_EMAIL = "ugur.altan@gmx.de"; // Testadresse Sport Weber
+const REPLY_TO_EMAIL = "kassierer@fsv-nieder-olm.de";
 const PAYPAL_HINWEIS = "@FSVNO";
 const BANK_HINWEIS = "Volksbank Darmstadt Mainz, IBAN: DE37 5519 0000 0037 6010 10";
 </script>
@@ -266,8 +251,23 @@ ${lines}
 Gesamtbetrag: ${euro(sum)}`;
 }
 
-async function sendEmail(templateId, params) {
-  return emailjs.send(EMAILJS_SERVICE_ID, templateId, params);
+async function sendWeb3Forms(payload) {
+  const response = await fetch("https://api.web3forms.com/submit", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(result.message || "Web3Forms konnte die Nachricht nicht senden.");
+  }
+
+  return result;
 }
 
 async function submitOrder() {
@@ -315,18 +315,15 @@ WARTET AUF ZAHLUNG
 Aufgabe Kassierer:
 Bitte Zahlungseingang prüfen.
 
-Wenn der Betrag eingegangen ist:
-1. Diese Bestellung freigeben.
-2. Die Bestellung an Sport Weber weitergeben.
+Hinweis:
+Die Bestellung wurde im aktuellen Testaufbau zusätzlich automatisch an die Sport-Weber-Testadresse ${SPORT_WEBER_EMAIL} gesendet.
 
-Für den Test ist Sport Weber hinterlegt mit:
-${SPORT_WEBER_EMAIL}
+Kundendaten sind enthalten, damit Sport Weber den Kunden kontaktieren kann, sobald die Bestellung abholbereit ist.`;
 
-Kundendaten müssen an Sport Weber mitgegeben werden, damit Sport Weber den Kunden kontaktieren kann, sobald die Bestellung abholbereit ist.`;
+  const sportWeberText = `TESTSYSTEM - FSV Nieder-Olm Vereinskleidung
 
-  const sportWeberText = `Freigegebene Bestellung FSV Nieder-Olm Vereinskleidung
-
-Diese Bestellung wurde vom Kassierer nach Zahlungseingang freigegeben.
+Diese Bestellung wurde automatisch aus dem Testshop erzeugt.
+Später wird diese Adresse auf die echte Sport-Weber-Adresse geändert.
 
 ${orderText}
 
@@ -337,102 +334,61 @@ ${customer.vorname} ${customer.nachname}
 E-Mail: ${customer.email}
 Telefon: ${customer.telefon}`;
 
-  const params = {
-    order_id: orderId,
-    order_text: orderText,
-    total: euro(sum),
-    customer_name: `${customer.vorname} ${customer.nachname}`,
-    customer_firstname: customer.vorname,
-    customer_lastname: customer.nachname,
-    customer_email: customer.email,
-    customer_phone: customer.telefon,
-    customer_year: customer.jahrgang,
-    customer_team: customer.mannschaft,
-    kassierer_email: KASSIERER_EMAIL,
-    sport_weber_email: SPORT_WEBER_EMAIL,
-    payment_reference: verwendungszweck,
-    bank_payment: BANK_HINWEIS,
-    paypal_payment: PAYPAL_HINWEIS,
-    besteller_mail_text: bestellerText,
-    kassierer_mail_text: kassiererText,
-    sport_weber_mail_text: sportWeberText
-  };
-
   const box = document.getElementById('result');
   box.style.display = 'block';
-
-  if (EMAILJS_PUBLIC_KEY.includes('HIER_')) {
-    box.textContent =
-`TESTMODUS – E-MailJS ist noch nicht eingerichtet.
-
-Sobald du die EmailJS-IDs oben in der index.html einträgst, werden automatisch diese Mails verschickt:
-
-1) Mail an Besteller:
-${customer.email}
-
-${bestellerText}
-
-----------------------------------------
-
-2) Mail an Kassierer:
-${KASSIERER_EMAIL}
-
-${kassiererText}
-
-----------------------------------------
-
-3) Mail an Sport Weber nach Kassierer-Freigabe:
-${SPORT_WEBER_EMAIL}
-
-${sportWeberText}
-
-Hinweis:
-Für die smarte Kassierer-Freigabe empfehle ich als nächsten Schritt einen kleinen Freigabe-Link über Google Apps Script oder Netlify Function. Dann wird Mail 3 erst nach Klick des Kassierers versendet.`;
-    return;
-  }
+  box.textContent = 'Bestellung wird gesendet ... bitte kurz warten.';
 
   try {
-    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
-
-    await sendEmail(EMAILJS_TEMPLATE_BESTELLER, {
-      ...params,
-      to_email: customer.email,
-      subject: `FSV Nieder-Olm – Bestellbestätigung ${orderId}`,
-      message: bestellerText
-    });
-
-    await sendEmail(EMAILJS_TEMPLATE_KASSIERER, {
-      ...params,
-      to_email: KASSIERER_EMAIL,
-      subject: `Neue Vereinskleidungsbestellung ${orderId}`,
-      message: kassiererText
-    });
-
     /*
-      WICHTIG:
-      Diese Sport-Weber-Mail ist hier noch NICHT automatisch aktiv,
-      weil vorher die Zahlung durch den Kassierer bestätigt werden soll.
-      Im nächsten Schritt bauen wir dafür einen Freigabe-Link.
+      Web3Forms sendet standardmäßig an die E-Mail-Adresse,
+      die zum Access Key gehört. Zusätzlich verwenden wir ccemail,
+      damit Kassierer und Sport-Weber-Testadresse ebenfalls informiert werden.
+      Die Besteller-Mail erfolgt über die Web3Forms-Autoresponse an customer.email.
     */
+    await sendWeb3Forms({
+      access_key: WEB3FORMS_ACCESS_KEY,
+      subject: `Neue Vereinskleidungsbestellung ${orderId}`,
+      from_name: "FSV Nieder-Olm Vereinskleidung",
+      email: customer.email,
+      replyto: REPLY_TO_EMAIL,
+      ccemail: `${KASSIERER_EMAIL},${SPORT_WEBER_EMAIL}`,
+      message: kassiererText + "
 
-    box.textContent = `Danke, deine Bestellung wurde erfasst.
+----------------------------------------
+
+MAIL AN SPORT WEBER TEST:
+
+" + sportWeberText,
+      autoresponse: bestellerText,
+      Bestellnummer: orderId,
+      Kunde: `${customer.vorname} ${customer.nachname}`,
+      Kundendaten_Email: customer.email,
+      Kundendaten_Telefon: customer.telefon,
+      Jahrgang: customer.jahrgang,
+      Mannschaft: customer.mannschaft,
+      Gesamtbetrag: euro(sum),
+      Verwendungszweck: verwendungszweck
+    });
+
+    box.textContent = `Danke, deine Bestellung wurde übermittelt.
 
 Bestellnummer: ${orderId}
 
-Eine Bestellbestätigung wurde an ${customer.email} vorbereitet/versendet.
+Eine Bestellbestätigung wurde an ${customer.email} gesendet.
 Der Kassierer wurde unter ${KASSIERER_EMAIL} informiert.
+Die Testadresse für Sport Weber (${SPORT_WEBER_EMAIL}) wurde ebenfalls informiert.
 
 Die Bestellung wird erst nach Zahlungseingang weiterverarbeitet.`;
   } catch (err) {
     console.error(err);
-    box.textContent = `Die Bestellung konnte nicht automatisch per E-Mail versendet werden.
+    box.textContent = `Die Bestellung konnte nicht automatisch versendet werden.
 
 Bitte Screenshot dieser Zusammenfassung machen und an den Verein senden:
 
 ${orderText}
 
 Fehler:
-${err?.text || err?.message || err}`;
+${err?.message || err}`;
   }
 }
 renderProducts();
