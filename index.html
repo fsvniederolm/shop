@@ -51,6 +51,31 @@ input, select { width:100%; padding:11px; border:1px solid #ccc; border-radius:1
 @media(max-width:1050px) { .container {grid-template-columns:1fr;} .cart {position:static;} .product-grid {grid-template-columns: repeat(2,1fr);} }
 @media(max-width:700px) { .grid,.product-grid {grid-template-columns:1fr;} h1{font-size:21px} .logo{width:62px;height:62px} }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+/*
+  E-Mail-Versand über EmailJS:
+  1. Kostenlosen Account auf emailjs.com anlegen
+  2. E-Mail-Service verbinden
+  3. Drei Templates anlegen:
+     - Besteller-Bestätigung
+     - Kassierer-Info
+     - Sport-Weber-Freigabe
+  4. Die IDs unten ersetzen
+*/
+const EMAILJS_PUBLIC_KEY = "HIER_DEIN_EMAILJS_PUBLIC_KEY_EINTRAGEN";
+const EMAILJS_SERVICE_ID = "HIER_DEIN_EMAILJS_SERVICE_ID_EINTRAGEN";
+const EMAILJS_TEMPLATE_BESTELLER = "HIER_TEMPLATE_BESTELLER_ID_EINTRAGEN";
+const EMAILJS_TEMPLATE_KASSIERER = "HIER_TEMPLATE_KASSIERER_ID_EINTRAGEN";
+const EMAILJS_TEMPLATE_SPORT_WEBER = "HIER_TEMPLATE_SPORT_WEBER_ID_EINTRAGEN";
+
+const KASSIERER_EMAIL = "ugur.altan@web.de";
+const SPORT_WEBER_EMAIL = "ugur.altan@gmx.de";
+const PAYPAL_HINWEIS = "@FSVNO";
+const BANK_HINWEIS = "Volksbank Darmstadt Mainz, IBAN: DE37 5519 0000 0037 6010 10";
+</script>
+
 </head>
 <body>
 <header>
@@ -68,12 +93,12 @@ input, select { width:100%; padding:11px; border:1px solid #ccc; border-radius:1
     <section class="panel customer">
       <h2>Spieler- und Kontaktdaten</h2>
       <div class="grid">
-        <div><label>Vorname Spieler</label><input id="vorname" placeholder="Max"></div>
-        <div><label>Nachname Spieler</label><input id="nachname" placeholder="Mustermann"></div>
-        <div><label>E-Mail Besteller</label><input id="email" placeholder="name@mail.de"></div>
-        <div><label>Telefon</label><input id="telefon" placeholder="06136 ..."></div>
-        <div><label>Jahrgang</label><input id="jahrgang" placeholder="2017"></div>
-        <div><label>Mannschaft</label><select id="mannschaft">
+        <div><label>Vorname Spieler</label><input id="vorname" placeholder="Max" required></div>
+        <div><label>Nachname Spieler</label><input id="nachname" placeholder="Mustermann" required></div>
+        <div><label>E-Mail Besteller</label><input id="email" type="email" placeholder="name@mail.de" required></div>
+        <div><label>Telefon</label><input id="telefon" type="tel" placeholder="06136 ..." required></div>
+        <div><label>Jahrgang</label><input id="jahrgang" placeholder="2017" required></div>
+        <div><label>Mannschaft</label><select id="mannschaft" required>
           <option>G-Jugend</option><option>F-Jugend</option><option>E-Jugend</option><option>D-Jugend</option><option>C-Jugend</option><option>B-Jugend</option><option>A-Jugend</option><option>Aktive</option>
         </select></div>
       </div>
@@ -183,19 +208,232 @@ function renderCart() {
   document.getElementById('vwz').textContent = (name || 'Vor- und Nachname des Spielers') + ' Vereinskleidung 2026';
 }
 ['vorname','nachname'].forEach(id=>document.addEventListener('input', e=>renderCart()));
-function submitOrder() {
-  const vor = document.getElementById('vorname').value || 'Max';
-  const nach = document.getElementById('nachname').value || 'Mustermann';
-  const email = document.getElementById('email').value || 'besteller@example.de';
-  const team = document.getElementById('mannschaft').value;
-  const order = '2026-' + String(Math.floor(Math.random()*9000)+1000);
+function getCustomerData() {
+  return {
+    vorname: document.getElementById('vorname').value.trim(),
+    nachname: document.getElementById('nachname').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    telefon: document.getElementById('telefon').value.trim(),
+    jahrgang: document.getElementById('jahrgang').value.trim(),
+    mannschaft: document.getElementById('mannschaft').value
+  };
+}
+
+function validateOrder(customer) {
+  const missing = [];
+  if (!customer.vorname) missing.push('Vorname Spieler');
+  if (!customer.nachname) missing.push('Nachname Spieler');
+  if (!customer.email) missing.push('E-Mail Besteller');
+  if (!customer.telefon) missing.push('Telefon');
+  if (!customer.jahrgang) missing.push('Jahrgang');
+  if (!customer.mannschaft) missing.push('Mannschaft');
+  if (cart.length === 0) missing.push('mindestens ein Artikel im Warenkorb');
+
+  if (missing.length) {
+    alert('Bitte folgende Pflichtangaben ergänzen:
+
+- ' + missing.join('
+- '));
+    return false;
+  }
+  return true;
+}
+
+function buildOrderText(orderId, customer, sum) {
+  const lines = cart.map((c, i) => {
+    const extras = [];
+    if (c.ini) extras.push('Initialen');
+    if (c.badge) extras.push('Wappen');
+    if (c.num) extras.push('Rückennummer');
+    const extrasText = extras.length ? ` | Veredelung: ${extras.join(', ')}` : '';
+    const sizeText = c.resolved || c.size || '-';
+    return `${i + 1}. ${c.qty}× ${c.name} | Größe: ${sizeText}${extrasText} | Betrag: ${euro(c.line)}`;
+  }).join('
+');
+
+  return `Bestellnummer: ${orderId}
+
+Kundendaten / Spieler:
+${customer.vorname} ${customer.nachname}
+E-Mail: ${customer.email}
+Telefon: ${customer.telefon}
+Jahrgang: ${customer.jahrgang}
+Mannschaft: ${customer.mannschaft}
+
+Bestellung:
+${lines}
+
+Gesamtbetrag: ${euro(sum)}`;
+}
+
+async function sendEmail(templateId, params) {
+  return emailjs.send(EMAILJS_SERVICE_ID, templateId, params);
+}
+
+async function submitOrder() {
+  const customer = getCustomerData();
+  if (!validateOrder(customer)) return;
+
+  const orderId = 'FSV-2026-' + new Date().toISOString().slice(0,10).replaceAll('-','') + '-' + String(Math.floor(Math.random()*9000)+1000);
   const sum = cart.reduce((a,c)=>a+c.line,0);
-  const lines = cart.map(c=>`- ${c.qty}× ${c.name}, Größe ${c.resolved || c.size || '-'}: ${euro(c.line)}`).join('\n') || '- Keine Positionen im Prototyp';
-  const besteller = `MAIL AN BESTELLER (${email})\nBetreff: FSV Nieder-Olm - Bestellbestätigung\n\nHallo ${vor},\n\nvielen Dank für deine Bestellung.\n\nBestellnummer: ${order}\n\n${lines}\n\nGesamtbetrag: ${euro(sum)}\n\nZahlung nach Bestellung:\n\nPayPal:\n@FSVNO\nBitte als Dienstleistung senden.\n\nBanküberweisung:\nVolksbank Darmstadt Mainz\nIBAN: DE37 5519 0000 0037 6010 10\n\nVerwendungszweck:\n${vor} ${nach} Vereinskleidung 2026\n\nDie Bestellung wird erst nach Zahlungseingang verarbeitet.`;
-  const kassierer = `\n\nMAIL AN KASSIERER (kassierer@fsv-nieder-olm.de)\nBetreff: Neue Vereinskleidungsbestellung ${order}\n\nBestellnummer: ${order}\nSpieler: ${vor} ${nach}\nMannschaft: ${team}\nGesamtbetrag: ${euro(sum)}\nStatus: Warte auf Zahlung\n\nBitte Zahlungseingang prüfen.`;
+  const orderText = buildOrderText(orderId, customer, sum);
+  const verwendungszweck = `${orderId} ${customer.vorname} ${customer.nachname}`;
+
+  const bestellerText = `Hallo ${customer.vorname},
+
+vielen Dank für deine Bestellung beim FSV Nieder-Olm.
+
+${orderText}
+
+Zahlung:
+Die Bestellung wird erst nach Zahlungseingang weiterverarbeitet.
+
+Bitte zahle den Gesamtbetrag entweder per Banküberweisung oder per PayPal.
+
+Banküberweisung:
+${BANK_HINWEIS}
+
+PayPal:
+${PAYPAL_HINWEIS}
+
+Wichtig:
+Bitte gib als Verwendungszweck immer diese Bestellnummer an:
+${verwendungszweck}
+
+Sobald deine Bestellung bei Sport Weber in Saulheim abholbereit ist, wirst du benachrichtigt.
+
+Sportliche Grüße
+FSV Nieder-Olm`;
+
+  const kassiererText = `Neue Vereinskleidungsbestellung wartet auf Zahlungseingang.
+
+${orderText}
+
+Status:
+WARTET AUF ZAHLUNG
+
+Aufgabe Kassierer:
+Bitte Zahlungseingang prüfen.
+
+Wenn der Betrag eingegangen ist:
+1. Diese Bestellung freigeben.
+2. Die Bestellung an Sport Weber weitergeben.
+
+Für den Test ist Sport Weber hinterlegt mit:
+${SPORT_WEBER_EMAIL}
+
+Kundendaten müssen an Sport Weber mitgegeben werden, damit Sport Weber den Kunden kontaktieren kann, sobald die Bestellung abholbereit ist.`;
+
+  const sportWeberText = `Freigegebene Bestellung FSV Nieder-Olm Vereinskleidung
+
+Diese Bestellung wurde vom Kassierer nach Zahlungseingang freigegeben.
+
+${orderText}
+
+Bitte den Kunden kontaktieren, sobald die Bestellung bei Sport Weber in Saulheim abholbereit ist.
+
+Kontakt Kunde:
+${customer.vorname} ${customer.nachname}
+E-Mail: ${customer.email}
+Telefon: ${customer.telefon}`;
+
+  const params = {
+    order_id: orderId,
+    order_text: orderText,
+    total: euro(sum),
+    customer_name: `${customer.vorname} ${customer.nachname}`,
+    customer_firstname: customer.vorname,
+    customer_lastname: customer.nachname,
+    customer_email: customer.email,
+    customer_phone: customer.telefon,
+    customer_year: customer.jahrgang,
+    customer_team: customer.mannschaft,
+    kassierer_email: KASSIERER_EMAIL,
+    sport_weber_email: SPORT_WEBER_EMAIL,
+    payment_reference: verwendungszweck,
+    bank_payment: BANK_HINWEIS,
+    paypal_payment: PAYPAL_HINWEIS,
+    besteller_mail_text: bestellerText,
+    kassierer_mail_text: kassiererText,
+    sport_weber_mail_text: sportWeberText
+  };
+
   const box = document.getElementById('result');
-  box.style.display='block';
-  box.textContent = besteller + kassierer;
+  box.style.display = 'block';
+
+  if (EMAILJS_PUBLIC_KEY.includes('HIER_')) {
+    box.textContent =
+`TESTMODUS – E-MailJS ist noch nicht eingerichtet.
+
+Sobald du die EmailJS-IDs oben in der index.html einträgst, werden automatisch diese Mails verschickt:
+
+1) Mail an Besteller:
+${customer.email}
+
+${bestellerText}
+
+----------------------------------------
+
+2) Mail an Kassierer:
+${KASSIERER_EMAIL}
+
+${kassiererText}
+
+----------------------------------------
+
+3) Mail an Sport Weber nach Kassierer-Freigabe:
+${SPORT_WEBER_EMAIL}
+
+${sportWeberText}
+
+Hinweis:
+Für die smarte Kassierer-Freigabe empfehle ich als nächsten Schritt einen kleinen Freigabe-Link über Google Apps Script oder Netlify Function. Dann wird Mail 3 erst nach Klick des Kassierers versendet.`;
+    return;
+  }
+
+  try {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+    await sendEmail(EMAILJS_TEMPLATE_BESTELLER, {
+      ...params,
+      to_email: customer.email,
+      subject: `FSV Nieder-Olm – Bestellbestätigung ${orderId}`,
+      message: bestellerText
+    });
+
+    await sendEmail(EMAILJS_TEMPLATE_KASSIERER, {
+      ...params,
+      to_email: KASSIERER_EMAIL,
+      subject: `Neue Vereinskleidungsbestellung ${orderId}`,
+      message: kassiererText
+    });
+
+    /*
+      WICHTIG:
+      Diese Sport-Weber-Mail ist hier noch NICHT automatisch aktiv,
+      weil vorher die Zahlung durch den Kassierer bestätigt werden soll.
+      Im nächsten Schritt bauen wir dafür einen Freigabe-Link.
+    */
+
+    box.textContent = `Danke, deine Bestellung wurde erfasst.
+
+Bestellnummer: ${orderId}
+
+Eine Bestellbestätigung wurde an ${customer.email} vorbereitet/versendet.
+Der Kassierer wurde unter ${KASSIERER_EMAIL} informiert.
+
+Die Bestellung wird erst nach Zahlungseingang weiterverarbeitet.`;
+  } catch (err) {
+    console.error(err);
+    box.textContent = `Die Bestellung konnte nicht automatisch per E-Mail versendet werden.
+
+Bitte Screenshot dieser Zusammenfassung machen und an den Verein senden:
+
+${orderText}
+
+Fehler:
+${err?.text || err?.message || err}`;
+  }
 }
 renderProducts();
 </script>
