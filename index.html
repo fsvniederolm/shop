@@ -22,17 +22,17 @@ h1 { margin:0; font-size:28px; }
 label { font-weight:700; font-size:13px; display:block; margin-bottom:5px; }
 input, select { width:100%; padding:11px; border:1px solid #ccc; border-radius:10px; font-size:14px; }
 .product-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
-.card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:14px; box-shadow:0 2px 10px rgba(0,0,0,.04); display:flex; flex-direction:column; gap:10px; }
+.card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:14px; box-shadow:0 2px 10px rgba(0,0,0,.04); display:flex; flex-direction:column; gap:10px; height:100%; }
 .imgbox { height:160px; border-radius:14px; background:#fff; border:1px solid #eee; display:flex; align-items:center; justify-content:center; text-align:center; color:#777; font-size:13px; padding:8px; overflow:hidden; }
 .imgbox img { max-width:100%; max-height:100%; width:100%; height:100%; object-fit:contain; display:block; }
 .imgbox .placeholder { display:none; }
 .card h3 { margin:0; font-size:16px; min-height:40px; }
 .price { font-size:18px; font-weight:800; color:var(--red); }
-.opts { display:flex; flex-direction:column; gap:8px; font-size:13px; }
+.opts { display:flex; flex-direction:column; gap:8px; font-size:13px; flex-grow:1; }
 .optline { display:flex; align-items:center; gap:8px; }
 .optline input { width:auto; }
 .row { display:grid; grid-template-columns:1fr 92px; gap:8px; }
-.add { background:var(--black); color:#fff; border:0; border-radius:10px; padding:11px; cursor:pointer; font-weight:700; }
+.add { background:var(--black); color:#fff; border:0; border-radius:10px; padding:11px; cursor:pointer; font-weight:700; margin-top:auto; }
 .add:hover { background:var(--red); }
 .cart { position:sticky; top:128px; padding:18px; height:fit-content; }
 .cart h2 { margin:0 0 12px; }
@@ -235,8 +235,10 @@ function addToCart(idx) {
     shoe,
     resolved,
     initials: iniChecked ? iniField.value.trim() : '',
+    initialsRequired: !!iniChecked,
     badge: !!badge,
     number: numChecked ? numField.value.trim() : '',
+    numberRequired: !!numChecked,
     line
   });
 
@@ -292,9 +294,9 @@ function validateOrder(customer) {
 function buildOrderText(orderId, customer, sum) {
   const lines = cart.map((c, i) => {
     const extras = [];
-    if (c.ini) extras.push(`Initialen: ${c.initials || '-'}`);
+    if (c.initials) extras.push(`Initialen: ${c.initials}`);
     if (c.badge) extras.push('Wappen');
-    if (c.num) extras.push(`Rückennummer: ${c.numberValue || '-'}`);
+    if (c.number) extras.push(`Rückennummer: ${c.number}`);
     const extrasText = extras.length ? ` | Veredelung: ${extras.join(', ')}` : '';
     const sizeText = c.resolved || c.size || '-';
     return `${i + 1}. ${c.qty}× ${c.name}\n   Größe: ${sizeText}${extrasText}\n   Betrag: ${euro(c.line)}`;
@@ -351,7 +353,30 @@ async function sendEmail(templateId, params) {
   return emailjs.send(EMAILJS_SERVICE_ID, templateId, params);
 }
 
+
+function validateCartCustomizations() {
+  for (const c of cart) {
+    if (c.initials !== undefined && c.initials === null) c.initials = "";
+    if (c.number !== undefined && c.number === null) c.number = "";
+
+    // Sicherheit: Falls ein Artikel mit angehakten, aber leeren Initialen im Warenkorb gelandet wäre.
+    if (c.initialsRequired && !String(c.initials || "").trim()) {
+      alert(`Bitte Initialen für "${c.name}" eingeben.`);
+      return false;
+    }
+
+    // Sicherheit: Falls ein Artikel mit angehakter, aber leerer Rückennummer im Warenkorb gelandet wäre.
+    if (c.numberRequired && !String(c.number || "").trim()) {
+      alert(`Bitte Rückennummer für "${c.name}" eingeben.`);
+      return false;
+    }
+  }
+  return true;
+}
+
 async function submitOrder() {
+  const box = document.getElementById('result');
+  if (box) { box.style.display = 'block'; box.textContent = 'Bestellung wird geprüft ...'; }
   const customer = getCustomerData();
 
   if (!validateOrder(customer)) return;
@@ -402,7 +427,6 @@ ${customer.vorname} ${customer.nachname}
 E-Mail: ${customer.email}
 Telefon: ${customer.telefon}`;
 
-  const box = document.getElementById('result');
   box.style.display = 'block';
   box.textContent = 'Bestellung wird gesendet ... bitte kurz warten.';
 
