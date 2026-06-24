@@ -206,6 +206,7 @@ function getCustomerData() {
 
 function validateOrder(customer) {
   const missing = [];
+
   if (!customer.vorname) missing.push('Vorname Spieler');
   if (!customer.nachname) missing.push('Nachname Spieler');
   if (!customer.email) missing.push('E-Mail Besteller');
@@ -221,6 +222,7 @@ function validateOrder(customer) {
 - '));
     return false;
   }
+
   return true;
 }
 
@@ -272,6 +274,7 @@ async function sendWeb3Forms(payload) {
 
 async function submitOrder() {
   const customer = getCustomerData();
+
   if (!validateOrder(customer)) return;
 
   const orderId = 'FSV-2026-' + new Date().toISOString().slice(0,10).replaceAll('-','') + '-' + String(Math.floor(Math.random()*9000)+1000);
@@ -316,7 +319,8 @@ Aufgabe Kassierer:
 Bitte Zahlungseingang prüfen.
 
 Hinweis:
-Die Bestellung wurde im aktuellen Testaufbau zusätzlich automatisch an die Sport-Weber-Testadresse ${SPORT_WEBER_EMAIL} gesendet.
+Diese Bestellung wurde im aktuellen Testaufbau zusätzlich automatisch an die Sport-Weber-Testadresse gesendet:
+${SPORT_WEBER_EMAIL}
 
 Kundendaten sind enthalten, damit Sport Weber den Kunden kontaktieren kann, sobald die Bestellung abholbereit ist.`;
 
@@ -339,12 +343,6 @@ Telefon: ${customer.telefon}`;
   box.textContent = 'Bestellung wird gesendet ... bitte kurz warten.';
 
   try {
-    /*
-      Web3Forms sendet standardmäßig an die E-Mail-Adresse,
-      die zum Access Key gehört. Zusätzlich verwenden wir ccemail,
-      damit Kassierer und Sport-Weber-Testadresse ebenfalls informiert werden.
-      Die Besteller-Mail erfolgt über die Web3Forms-Autoresponse an customer.email.
-    */
     await sendWeb3Forms({
       access_key: WEB3FORMS_ACCESS_KEY,
       subject: `Neue Vereinskleidungsbestellung ${orderId}`,
@@ -352,14 +350,9 @@ Telefon: ${customer.telefon}`;
       email: customer.email,
       replyto: REPLY_TO_EMAIL,
       ccemail: `${KASSIERER_EMAIL},${SPORT_WEBER_EMAIL}`,
-      message: kassiererText + "
-
-----------------------------------------
-
-MAIL AN SPORT WEBER TEST:
-
-" + sportWeberText,
+      message: kassiererText + "\n\n----------------------------------------\n\nMAIL AN SPORT WEBER TEST:\n\n" + sportWeberText,
       autoresponse: bestellerText,
+
       Bestellnummer: orderId,
       Kunde: `${customer.vorname} ${customer.nachname}`,
       Kundendaten_Email: customer.email,
