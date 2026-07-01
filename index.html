@@ -318,9 +318,42 @@ Gesamtbetrag: ${euro(sum)}`;
 }
 
 
+
+async function generateNextOrderId() {
+  const prefix = "FSV-2026-";
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/orders?select=order_id,bestellnummer&limit=1000`, {
+    method: "GET",
+    headers: {
+      "apikey": SUPABASE_PUBLISHABLE_KEY,
+      "Authorization": `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      "Content-Type": "application/json"
+    }
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error("Bestellnummer konnte nicht erzeugt werden: " + errorText);
+  }
+
+  const orders = await response.json();
+  let maxNumber = 0;
+
+  for (const order of orders || []) {
+    const value = String(order.bestellnummer || order.order_id || "");
+    if (value.startsWith(prefix)) {
+      const numberPart = value.slice(prefix.length);
+      const number = parseInt(numberPart, 10);
+      if (!Number.isNaN(number) && number > maxNumber) maxNumber = number;
+    }
+  }
+
+  return prefix + String(maxNumber + 1).padStart(4, "0");
+}
+
 async function saveOrderToSupabase(orderId, customer, sum, orderText) {
   const payload = {
     order_id: orderId,
+    bestellnummer: orderId,
     vorname: customer.vorname,
     nachname: customer.nachname,
     email: customer.email,
@@ -329,7 +362,11 @@ async function saveOrderToSupabase(orderId, customer, sum, orderText) {
     mannschaft: customer.mannschaft,
     gesamtbetrag: Number(sum.toFixed(2)),
     bestellung: orderText,
-    status: "eingegangen"
+    verein: "FSV Nieder-Olm",
+    status: "offen",
+    bezahlt: "nein",
+    sport_weber_status: "offen",
+    lieferant_bestellung: ""
   };
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
@@ -382,7 +419,7 @@ async function submitOrder() {
   if (!validateOrder(customer)) return;
   if (!validateCartCustomizations()) return;
 
-  const orderId = 'FSV-2026-' + new Date().toISOString().slice(0,10).replaceAll('-','') + '-' + String(Math.floor(Math.random()*9000)+1000);
+  const orderId = await generateNextOrderId();
   const sum = cart.reduce((a,c)=>a+c.line,0);
   const orderText = buildOrderText(orderId, customer, sum);
   const verwendungszweck = `${orderId} ${customer.vorname} ${customer.nachname}`;
