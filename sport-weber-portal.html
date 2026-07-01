@@ -15,7 +15,7 @@ const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_omPVDjNvHQ5SULxKhJQqUA_-rCJ0PL3";
 const EMAILJS_PUBLIC_KEY="4gRqrmu7JPDzAYBFo";
 const EMAILJS_SERVICE_ID="service_wpky3om";
-const EMAILJS_TEMPLATE_ABHOLBEREIT="template_ABHOLBEREIT"; // bitte in EmailJS anlegen und hier die echte Template-ID eintragen
+const EMAILJS_TEMPLATE_ABHOLBEREIT="template_vsim3m6"; // nutzt das vorhandene kostenlose EmailJS-Template mit dynamischem Empfänger
 let currentTab='aktiv';
 let allOrders=[];const headers={apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:`Bearer ${SUPABASE_PUBLISHABLE_KEY}`,"Content-Type":"application/json"};
 function esc(v){return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
@@ -30,7 +30,18 @@ function downloadCsv(filename, rowsData){const csv='\ufeff'+rowsData.map(r=>r.ma
 function exportCsv(){const data=getFilteredOrders();const header=['Verein','Bestellnummer','Jugend','Vorname','Nachname','E-Mail','Telefon','Lieferantenbestellnummer','Status','Betrag','Bestellung','Erstellt am'];const rowsData=[header,...data.map(o=>[o.verein||'FSV Nieder-Olm',o.order_id||o.id,o.mannschaft||'',o.vorname||'',o.nachname||'',o.email||'',o.telefon||'',o.lieferant_bestellung||'',o.sport_weber_status||'offen',Number(o.gesamtbetrag||0).toFixed(2).replace('.',','),o.bestellung||'',o.created_at||''])];const tabName=currentTab==='abgeschlossen'?'abgeschlossen':'aktiv';downloadCsv(`sport-weber-bestellungen-${tabName}.csv`,rowsData);}
 async function patchOrder(id,patch){const res=await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`,{method:'PATCH',headers:{...headers,"Prefer":"return=minimal"},body:JSON.stringify(patch)});if(!res.ok){alert('Speichern fehlgeschlagen: '+await res.text());return false;}return true;}
 async function saveSupplier(id){const input=document.getElementById('sup-'+id);const val=input.value.trim();if(await patchOrder(id,{lieferant_bestellung:val})){const o=allOrders.find(x=>x.id===id);if(o)o.lieferant_bestellung=val;message.textContent='Lieferantenbestellnummer gespeichert.';}}
-async function sendPickupMail(o){if(!window.emailjs||!EMAILJS_TEMPLATE_ABHOLBEREIT||EMAILJS_TEMPLATE_ABHOLBEREIT.includes('ABHOLBEREIT'))return false;const params={to_email:o.email,verein:o.verein||'FSV Nieder-Olm',order_id:o.order_id||o.id,jugend:o.mannschaft||'',vorname:o.vorname||'',nachname:o.nachname||'',telefon:o.telefon||'',lieferant_bestellung:o.lieferant_bestellung||'',bestellung:o.bestellung||''};try{await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ABHOLBEREIT,params);return true;}catch(err){console.error(err);alert('Status gespeichert, aber Abholbereit-E-Mail konnte nicht gesendet werden. Bitte Template-ID prüfen.');return false;}}
-async function setStatus(id,status){const o=allOrders.find(x=>x.id===id);const oldStatus=o?.sport_weber_status||'offen';const input=document.getElementById('sup-'+id);const supplier=(input?.value||'').trim();if(status==='bestellt'&&!supplier){alert('Bitte zuerst die Lieferantenbestellnummer eintragen.');render();return;}const patch={sport_weber_status:status};if(supplier)patch.lieferant_bestellung=supplier;if(await patchOrder(id,patch)){if(o){o.sport_weber_status=status;if(supplier)o.lieferant_bestellung=supplier;}updateStats();render();if(status==='abholbereit'&&oldStatus!=='abholbereit'&&o&&!o.pickup_email_sent){const sent=await sendPickupMail(o);if(sent){await patchOrder(id,{pickup_email_sent:true});o.pickup_email_sent=true;message.textContent='Status abholbereit gespeichert. Kunde wurde per E-Mail informiert.';}}}}
+async function sendPickupMail(o){if(!window.emailjs||!EMAILJS_TEMPLATE_ABHOLBEREIT)return false;const subject=`Deine Bestellung ist abholbereit – ${o.order_id||o.id}`;const messageText=`Hallo ${o.vorname||''} ${o.nachname||''},
+
+Deine Bestellung ist ab sofort abholbereit.
+
+Verein: ${o.verein||'FSV Nieder-Olm'}
+Bestellnummer: ${o.order_id||o.id}
+Jugend: ${o.mannschaft||''}
+
+Bitte hole deine Bestellung bei Sport Weber ab.
+
+Viele Grüße
+FSV Nieder-Olm / Sport Weber`;const params={to_email:o.email,reply_to:'kassierer@fsv-nieder-olm.de',subject:subject,message:messageText,verein:o.verein||'FSV Nieder-Olm',order_id:o.order_id||o.id,bestellnummer:o.order_id||o.id,jugend:o.mannschaft||'',vorname:o.vorname||'',nachname:o.nachname||'',email:o.email||'',telefon:o.telefon||'',lieferant_bestellung:o.lieferant_bestellung||'',bestellung:o.bestellung||''};try{await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ABHOLBEREIT,params);return true;}catch(err){console.error(err);alert('Status gespeichert, aber Abholbereit-E-Mail konnte nicht gesendet werden. Bitte EmailJS-Template prüfen.');return false;}}
+async function setStatus(id,status){const o=allOrders.find(x=>x.id===id);const oldStatus=o?.sport_weber_status||'offen';const input=document.getElementById('sup-'+id);const supplier=(input?.value||'').trim();if(status==='bestellt'&&!supplier){alert('Bitte zuerst die Lieferantenbestellnummer eintragen.');render();return;}const patch={sport_weber_status:status};if(supplier)patch.lieferant_bestellung=supplier;if(await patchOrder(id,patch)){if(o){o.sport_weber_status=status;if(supplier)o.lieferant_bestellung=supplier;}updateStats();render();if(status==='abholbereit'&&oldStatus!=='abholbereit'&&o){const sent=await sendPickupMail(o);if(sent){message.textContent='Status abholbereit gespeichert. Kunde wurde per E-Mail informiert.';}}}}
 if(window.emailjs){emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});}search.addEventListener('input',render);statusFilter.addEventListener('change',render);loadOrders();
 </script></body></html>

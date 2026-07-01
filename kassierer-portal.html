@@ -119,8 +119,8 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_omPVDjNvHQ5SULxKhJQqUA_-rCJ0PL3
 // EmailJS: Template für automatische Mail an Sport Weber nach Zahlungseingang
 const EMAILJS_PUBLIC_KEY = "4gRqrmu7JPDzAYBFo";
 const EMAILJS_SERVICE_ID = "service_wpky3om";
-const EMAILJS_TEMPLATE_WEBER_FREIGABE = "template_WEBER_FREIGABE"; // bitte in EmailJS anlegen und hier die echte Template-ID eintragen
-const SPORT_WEBER_EMAIL = "bitte-eintragen@sport-weber.de"; // bitte echte Sport-Weber-E-Mail eintragen
+const EMAILJS_TEMPLATE_WEBER_FREIGABE = "template_vsim3m6"; // nutzt das vorhandene Kassierer-Template mit dynamischem Empfänger
+const SPORT_WEBER_EMAIL = "ugur.altan@web.de";
 
 let allOrders=[];
 let currentTab='open';
@@ -229,22 +229,52 @@ function exportCsv(){
 }
 
 async function sendWeberFreigabeMail(o){
-  if(!window.emailjs || !EMAILJS_TEMPLATE_WEBER_FREIGABE || EMAILJS_TEMPLATE_WEBER_FREIGABE.includes('WEBER_FREIGABE')) return false;
+  if(!window.emailjs || !EMAILJS_TEMPLATE_WEBER_FREIGABE) return false;
+
+  const orderId = o.order_id || o.id;
+  const verein = o.verein || 'FSV Nieder-Olm';
+  const name = `${o.vorname || ''} ${o.nachname || ''}`.trim();
+  const portalLink = location.origin + location.pathname.replace(/kassierer-portal\.html$/,'sport-weber-portal.html');
+
+  const message = `Neue freigegebene Vereinsbestellung
+
+Hallo Sport Weber,
+
+der Kassierer hat eine Bestellung als bezahlt markiert. Die Bestellung ist damit freigegeben und kann im Sport-Weber-Portal bearbeitet werden.
+
+Verein: ${verein}
+Bestellnummer: ${orderId}
+Jugend: ${o.mannschaft || ''}
+Name: ${name}
+E-Mail: ${o.email || ''}
+Telefon: ${o.telefon || ''}
+Gesamtbetrag: ${euro(o.gesamtbetrag)}
+
+Bestelldetails:
+${o.bestellung || ''}
+
+Sport-Weber-Portal:
+${portalLink}`;
+
   const params={
     to_email: SPORT_WEBER_EMAIL,
-    verein: o.verein || 'FSV Nieder-Olm',
-    order_id: o.order_id || o.id,
+    reply_to: 'kassierer@fsv-nieder-olm.de',
+    subject: `Neue freigegebene Bestellung - ${verein} - ${orderId}`,
+    order_id: orderId,
+    bestellnummer: orderId,
+    verein: verein,
     jugend: o.mannschaft || '',
     vorname: o.vorname || '',
     nachname: o.nachname || '',
     email: o.email || '',
     telefon: o.telefon || '',
-    gesamtbetrag: euro(o.gesamtbetrag),
-    bestellung: o.bestellung || '',
-    portal_link: location.origin + location.pathname.replace(/kassierer-portal\.html$/,'sport-weber-portal.html')
+    customer_email: o.email || '',
+    customer_name: name,
+    message
   };
+
   try{ await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_WEBER_FREIGABE, params); return true; }
-  catch(err){ console.error(err); alert('Zahlung gespeichert, aber E-Mail an Sport Weber konnte nicht gesendet werden. Bitte Template-ID/E-Mail prüfen.'); return false; }
+  catch(err){ console.error(err); alert('Zahlung gespeichert, aber E-Mail an Sport Weber konnte nicht gesendet werden. Bitte EmailJS prüfen.'); return false; }
 }
 
 async function setPaid(id,value){
