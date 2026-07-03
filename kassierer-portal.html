@@ -1,6 +1,26 @@
 <!doctype html>
 <html lang="de">
 <head>
+<script>
+(function(){
+  const LOGIN_KEY = "fsv_kassierer_portal_auth_v211";
+  const PASSWORD = "fsv1893";
+  if (sessionStorage.getItem(LOGIN_KEY) === "ok") return;
+  const eingabe = window.prompt("Passwort für Kassiererportal eingeben:");
+  if (eingabe === PASSWORD) {
+    sessionStorage.setItem(LOGIN_KEY, "ok");
+    return;
+  }
+  document.open();
+  document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zugriff verweigert</title><style>body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#111}.box{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;max-width:420px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08)}button{background:#111;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
+.version-badge{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.85);border:1px solid #ddd;border-radius:999px;padding:4px 8px;z-index:9999;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.12</div>
+</body></html>`);
+  document.close();
+  throw new Error("Zugriff verweigert");
+})();
+</script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FSV Nieder-Olm Kassiererportal</title>
@@ -131,7 +151,7 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_omPVDjNvHQ5SULxKhJQqUA_-rCJ0PL3
 const EMAILJS_PUBLIC_KEY = "4gRqrmu7JPDzAYBFo";
 const EMAILJS_SERVICE_ID = "service_wpky3om";
 const EMAILJS_TEMPLATE_WEBER_FREIGABE = "template_vsim3m6"; // nutzt das vorhandene Kassierer-Template mit dynamischem Empfänger
-const SPORT_WEBER_EMAIL = "ugur.altan@web.de";
+const SPORT_WEBER_EMAIL = "mail@sportweber.de";
 
 let allOrders=[];
 let currentTab='open';
@@ -325,5 +345,6 @@ if(window.emailjs){ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
 document.getElementById('search').addEventListener('input',render);
 loadOrders();
 </script>
+<div class="version-badge">Version 2.12</div>
 </body>
 </html>
