@@ -2,7 +2,7 @@
 <html lang="de"><head>
 <script>
 (function(){
-  const LOGIN_KEY = "fsv_sportweber_portal_auth_v211";
+  const LOGIN_KEY = "fsv_sportweber_portal_auth_v214";
   const PASSWORD = "sportweber&fsv";
   if (sessionStorage.getItem(LOGIN_KEY) === "ok") return;
   const eingabe = window.prompt("Passwort für Sport Weber Portal eingeben:");
@@ -13,7 +13,7 @@
   document.open();
   document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zugriff verweigert</title><style>body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#111}.box{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;max-width:420px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08)}button{background:#111;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
 .version-badge{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.85);border:1px solid #ddd;border-radius:999px;padding:4px 8px;z-index:9999;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.13</div>
+</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.14</div>
 </body></html>`);
   document.close();
   throw new Error("Zugriff verweigert");
@@ -55,5 +55,5 @@ async function patchOrder(id,patch){const res=await fetch(`${SUPABASE_URL}/rest/
 async function sendPickupMail(o){if(!window.emailjs||!EMAILJS_TEMPLATE_ABHOLBEREIT)return false;const subject=`Deine Bestellung ist abholbereit – ${orderNo(o)}`;const messageText=`Hallo ${o.vorname||''} ${o.nachname||''},\n\ndeine Bestellung ist ab sofort abholbereit.\n\nVerein: ${o.verein||'FSV Nieder-Olm'}\nBestellnummer: ${orderNo(o)}\nJugend: ${o.mannschaft||''}\n\nBitte hole deine Bestellung bei Sport Weber ab.\n\nViele Grüße\nFSV Nieder-Olm / Sport Weber`;const params={to_email:o.email,reply_to:'kassierer@fsv-nieder-olm.de',subject:subject,message:messageText,verein:o.verein||'FSV Nieder-Olm',order_id:orderNo(o),bestellnummer:orderNo(o),jugend:o.mannschaft||'',vorname:o.vorname||'',nachname:o.nachname||'',email:o.email||'',telefon:o.telefon||'',lieferant_bestellung:o.lieferant_bestellung||'',bestellung:o.bestellung||''};try{await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ABHOLBEREIT,params);return true;}catch(err){console.error(err);alert('Status gespeichert, aber Abholbereit-E-Mail konnte nicht gesendet werden. Bitte EmailJS-Template prüfen.');return false;}}
 async function saveRow(id){const o=allOrders.find(x=>x.id===id);if(!o)return;const supplier=(document.getElementById('sup-'+id)?.value||'').trim();const status=document.getElementById('status-'+id)?.value||'offen';const wasAlreadyNotified=!!o.pickup_email_sent;if(status==='bestellt'&&!supplier){alert('Bitte zuerst die Lieferantenbestellnummer eintragen.');render();return;}const patch={sport_weber_status:status,lieferant_bestellung:supplier};if(status==='abholbereit'){if(!o.pickup_ready_at){patch.pickup_ready_at=new Date().toISOString();}if(!wasAlreadyNotified){patch.pickup_email_sent=true;}}if(await patchOrder(id,patch)){o.sport_weber_status=status;o.lieferant_bestellung=supplier;if(patch.pickup_ready_at)o.pickup_ready_at=patch.pickup_ready_at;if(patch.pickup_email_sent===true)o.pickup_email_sent=true;updateStats();render();message.innerHTML='<span class="success">Änderungen erfolgreich gespeichert.</span>';if(status==='abholbereit'&&!wasAlreadyNotified){const sent=await sendPickupMail(o);if(sent){message.innerHTML='<span class="success">Status abholbereit gespeichert. Kunde wurde per E-Mail informiert. Kunde benachrichtigt steht jetzt auf ja.</span>';}else{message.innerHTML='<span class="danger">Status abholbereit gespeichert. Kunde benachrichtigt wurde auf ja gesetzt, damit keine zweite Mail ausgelöst wird. Bitte E-Mail-Versand prüfen.</span>';}}else if(status==='abholbereit'&&wasAlreadyNotified){message.innerHTML='<span class="success">Status abholbereit gespeichert. Kunde war bereits benachrichtigt, daher wurde keine zweite E-Mail gesendet.</span>';}}}
 if(window.emailjs){emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});}search.addEventListener('input',render);statusFilter.addEventListener('change',render);loadOrders();
-</script><div class="version-badge">Version 2.13</div>
+</script><div class="version-badge">Version 2.14</div>
 </body></html>

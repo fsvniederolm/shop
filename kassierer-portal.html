@@ -3,7 +3,7 @@
 <head>
 <script>
 (function(){
-  const LOGIN_KEY = "fsv_kassierer_portal_auth_v211";
+  const LOGIN_KEY = "fsv_kassierer_portal_auth_v214";
   const PASSWORD = "fsv1893";
   if (sessionStorage.getItem(LOGIN_KEY) === "ok") return;
   const eingabe = window.prompt("Passwort für Kassiererportal eingeben:");
@@ -14,7 +14,7 @@
   document.open();
   document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zugriff verweigert</title><style>body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#111}.box{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;max-width:420px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08)}button{background:#111;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
 .version-badge{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.85);border:1px solid #ddd;border-radius:999px;padding:4px 8px;z-index:9999;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.13</div>
+</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.14</div>
 </body></html>`);
   document.close();
   throw new Error("Zugriff verweigert");
@@ -74,6 +74,16 @@ tr.paid-nein{background:#fffafa}
 .details-btn{background:#fff;color:#111;border:1px solid #ccc;width:100%;padding:9px 6px;text-align:center;display:inline-block}
 .details-btn:hover{background:#fff0f1;color:#111}
 .col-nr{width:11%}.col-verein{width:8%}.col-status{width:11%}.col-jugend{width:7%}.col-vorname{width:8%}.col-nachname{width:8%}.col-email{width:13%}.col-tel{width:8%}.col-betrag{width:7%}.col-bezahlt{width:8%}.col-details{width:11%}
+
+.edit-panel{margin-top:16px;border-top:1px solid #ffd2d6;padding-top:14px}
+.edit-panel h4{margin:0 0 10px;color:var(--red-dark)}
+.edit-item{display:grid;grid-template-columns:1fr 150px;gap:10px;align-items:start;background:#fff;border:1px solid #ffd2d6;border-radius:10px;padding:12px;margin:10px 0}
+.edit-item pre{white-space:pre-wrap;margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45}
+button.danger-btn{background:#b0000b;color:#fff}
+button.danger-btn:hover{background:#790008}
+button.delete-order-btn{background:#7f1d1d;color:#fff;margin-top:10px}
+button.delete-order-btn:hover{background:#450a0a}
+
 @media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr)}.detail-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:900px){
   .header-inner{align-items:flex-start} h1{font-size:23px} .logo{width:68px;height:68px}
@@ -222,12 +232,79 @@ function render(){
   }).join('');
 }
 
+function splitOrderText(text){
+  text=String(text||'');
+  const start=text.search(/\n\s*1\.\s/);
+  if(start<0){ return {prefix:text, items:[], suffix:''}; }
+  let prefix=text.slice(0,start).replace(/\s+$/,'');
+  let rest=text.slice(start).trim();
+  rest=rest.replace(/\n\s*Gesamtbetrag:.*$/s,'').trim();
+  const items=rest ? rest.split(/\n(?=\d+\.\s)/).map(x=>x.trim()).filter(Boolean) : [];
+  return {prefix, items, suffix:''};
+}
+function amountFromBlock(block){
+  const m=String(block||'').match(/Betrag:\s*([0-9]+(?:[.,][0-9]{1,2})?)/i);
+  return m ? Number(m[1].replace(',','.')) : 0;
+}
+function renumberItems(items){
+  return items.map((block,i)=>String(block).replace(/^\s*\d+\./, (i+1)+'.'));
+}
+function formatAmountPlain(n){
+  return Number(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function buildOrderText(prefix, items, total){
+  const cleanPrefix=String(prefix||'').replace(/\s+$/,'');
+  return cleanPrefix+'\n\nBestellung:\n'+items.join('\n\n')+'\n\nGesamtbetrag: '+formatAmountPlain(total)+' €';
+}
+function renderEditableItems(o){
+  const parts=splitOrderText(o.bestellung||'');
+  if(!parts.items.length){
+    return `<div class="edit-panel"><h4>Bestellung bearbeiten</h4><p class="small">Keine einzelnen Positionen erkannt.</p><button class="delete-order-btn" onclick="deleteOrder(${o.id})">Ganze Bestellung löschen</button></div>`;
+  }
+  const itemsHtml=parts.items.map((block,idx)=>`<div class="edit-item"><pre>${esc(block)}</pre><button class="danger-btn" onclick="removeOrderPosition(${o.id},${idx})">Position entfernen</button></div>`).join('');
+  return `<div class="edit-panel"><h4>Bestellung bearbeiten</h4><p class="small">Der Kassierer kann einzelne Positionen entfernen. Der Gesamtbetrag wird automatisch neu berechnet und in allen Portalen übernommen.</p>${itemsHtml}<button class="delete-order-btn" onclick="deleteOrder(${o.id})">Ganze Bestellung löschen</button></div>`;
+}
 function detailRow(o){
-  return `<tr class="detail-row"><td colspan="11"><div class="detail-card"><div class="detail-title">Bestelldetails – ${esc(o.order_id||o.id)}</div><div class="detail-grid"><div class="detail-box"><b>Verein</b>${esc(o.verein||'FSV Nieder-Olm')}</div><div class="detail-box"><b>Kunde</b>${esc(((o.vorname||'')+' '+(o.nachname||'')).trim())}</div><div class="detail-box"><b>Jugend</b>${esc(o.mannschaft||'')}</div><div class="detail-box"><b>Gesamtbetrag</b>${euro(o.gesamtbetrag)}</div></div><div class="order-text">${esc(o.bestellung||'Keine Bestelldetails vorhanden')}</div></div></td></tr>`;
+  return `<tr class="detail-row"><td colspan="11"><div class="detail-card"><div class="detail-title">Bestelldetails – ${esc(o.order_id||o.id)}</div><div class="detail-grid"><div class="detail-box"><b>Verein</b>${esc(o.verein||'FSV Nieder-Olm')}</div><div class="detail-box"><b>Kunde</b>${esc(((o.vorname||'')+' '+(o.nachname||'')).trim())}</div><div class="detail-box"><b>Jugend</b>${esc(o.mannschaft||'')}</div><div class="detail-box"><b>Gesamtbetrag</b>${euro(o.gesamtbetrag)}</div></div><div class="order-text">${esc(o.bestellung||'Keine Bestelldetails vorhanden')}</div>${renderEditableItems(o)}</div></td></tr>`;
 }
 function toggleDetails(id){
   if(openDetails.has(id)){openDetails.delete(id);}else{openDetails.add(id);}
   render();
+}
+
+async function removeOrderPosition(id, index){
+  const o=allOrders.find(x=>x.id===id);
+  if(!o) return;
+  const parts=splitOrderText(o.bestellung||'');
+  if(!parts.items[index]){ alert('Position wurde nicht gefunden.'); return; }
+  const label=(o.order_id||o.id);
+  if(!confirm('Position '+(index+1)+' aus Bestellung '+label+' wirklich entfernen?')) return;
+  parts.items.splice(index,1);
+  const items=renumberItems(parts.items);
+  const total=items.reduce((sum,block)=>sum+amountFromBlock(block),0);
+  const newText=items.length ? buildOrderText(parts.prefix,items,total) : String(parts.prefix||'').replace(/\s+$/,'')+'\n\nBestellung:\nKeine Positionen vorhanden.\n\nGesamtbetrag: 0,00 €';
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`,{method:'PATCH',headers:{...headers,"Prefer":"return=minimal"},body:JSON.stringify({bestellung:newText,gesamtbetrag:total})});
+  if(!res.ok){alert('Position konnte nicht entfernt werden: '+await res.text());return;}
+  o.bestellung=newText;
+  o.gesamtbetrag=total;
+  openDetails.add(id);
+  updateStats();
+  render();
+  document.getElementById('message').textContent='Position entfernt. Gesamtbetrag wurde aktualisiert.';
+}
+
+async function deleteOrder(id){
+  const o=allOrders.find(x=>x.id===id);
+  if(!o) return;
+  const label=o.order_id||o.id;
+  if(!confirm('Ganze Bestellung '+label+' wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`,{method:'DELETE',headers:{...headers,"Prefer":"return=minimal"}});
+  if(!res.ok){alert('Bestellung konnte nicht gelöscht werden: '+await res.text());return;}
+  allOrders=allOrders.filter(x=>x.id!==id);
+  openDetails.delete(id);
+  updateStats();
+  render();
+  document.getElementById('message').textContent='Bestellung gelöscht.';
 }
 
 
@@ -345,6 +422,6 @@ if(window.emailjs){ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
 document.getElementById('search').addEventListener('input',render);
 loadOrders();
 </script>
-<div class="version-badge">Version 2.13</div>
+<div class="version-badge">Version 2.14</div>
 </body>
 </html>
