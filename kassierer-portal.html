@@ -14,7 +14,7 @@
   document.open();
   document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zugriff verweigert</title><style>body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#111}.box{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;max-width:420px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08)}button{background:#111;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
 .version-badge{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.85);border:1px solid #ddd;border-radius:999px;padding:4px 8px;z-index:9999;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.14</div>
+</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.15</div>
 </body></html>`);
   document.close();
   throw new Error("Zugriff verweigert");
@@ -262,10 +262,10 @@ function renderEditableItems(o){
     return `<div class="edit-panel"><h4>Bestellung bearbeiten</h4><p class="small">Keine einzelnen Positionen erkannt.</p><button class="delete-order-btn" onclick="deleteOrder(${o.id})">Ganze Bestellung löschen</button></div>`;
   }
   const itemsHtml=parts.items.map((block,idx)=>`<div class="edit-item"><pre>${esc(block)}</pre><button class="danger-btn" onclick="removeOrderPosition(${o.id},${idx})">Position entfernen</button></div>`).join('');
-  return `<div class="edit-panel"><h4>Bestellung bearbeiten</h4><p class="small">Der Kassierer kann einzelne Positionen entfernen. Der Gesamtbetrag wird automatisch neu berechnet und in allen Portalen übernommen.</p>${itemsHtml}<button class="delete-order-btn" onclick="deleteOrder(${o.id})">Ganze Bestellung löschen</button></div>`;
+  return `<div class="edit-panel"><h4>Bestellung bearbeiten</h4><p class="small">Der Kassierer kann einzelne Positionen entfernen. Der Gesamtbetrag wird automatisch neu berechnet und in allen Portalen übernommen.</p>${itemsHtml}<div style="display:flex;justify-content:flex-end;align-items:center;margin:14px 0;font-size:18px;font-weight:900;color:var(--red-dark);">Neuer Gesamtbetrag: ${euro(o.gesamtbetrag)}</div><button class="delete-order-btn" onclick="deleteOrder(${o.id})">Ganze Bestellung löschen</button></div>`;
 }
 function detailRow(o){
-  return `<tr class="detail-row"><td colspan="11"><div class="detail-card"><div class="detail-title">Bestelldetails – ${esc(o.order_id||o.id)}</div><div class="detail-grid"><div class="detail-box"><b>Verein</b>${esc(o.verein||'FSV Nieder-Olm')}</div><div class="detail-box"><b>Kunde</b>${esc(((o.vorname||'')+' '+(o.nachname||'')).trim())}</div><div class="detail-box"><b>Jugend</b>${esc(o.mannschaft||'')}</div><div class="detail-box"><b>Gesamtbetrag</b>${euro(o.gesamtbetrag)}</div></div><div class="order-text">${esc(o.bestellung||'Keine Bestelldetails vorhanden')}</div>${renderEditableItems(o)}</div></td></tr>`;
+  return `<tr class="detail-row"><td colspan="11"><div class="detail-card"><div class="detail-title">Bestelldetails – ${esc(o.order_id||o.id)}</div><div class="detail-grid"><div class="detail-box"><b>Verein</b>${esc(o.verein||'FSV Nieder-Olm')}</div><div class="detail-box"><b>Kunde</b>${esc(((o.vorname||'')+' '+(o.nachname||'')).trim())}</div><div class="detail-box"><b>Jugend</b>${esc(o.mannschaft||'')}</div><div class="detail-box"><b>Gesamtbetrag</b>${euro(o.gesamtbetrag)}</div></div>${renderEditableItems(o)}</div></td></tr>`;
 }
 function toggleDetails(id){
   if(openDetails.has(id)){openDetails.delete(id);}else{openDetails.add(id);}
@@ -422,6 +422,6 @@ if(window.emailjs){ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
 document.getElementById('search').addEventListener('input',render);
 loadOrders();
 </script>
-<div class="version-badge">Version 2.14</div>
+<div class="version-badge">Version 2.15</div>
 </body>
 </html>
