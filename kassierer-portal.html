@@ -14,7 +14,7 @@
   document.open();
   document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zugriff verweigert</title><style>body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#111}.box{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;max-width:420px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08)}button{background:#111;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
 .version-badge{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.85);border:1px solid #ddd;border-radius:999px;padding:4px 8px;z-index:9999;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.12</div>
+</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.13</div>
 </body></html>`);
   document.close();
   throw new Error("Zugriff verweigert");
@@ -345,6 +345,6 @@ if(window.emailjs){ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
 document.getElementById('search').addEventListener('input',render);
 loadOrders();
 </script>
-<div class="version-badge">Version 2.12</div>
+<div class="version-badge">Version 2.13</div>
 </body>
 </html>

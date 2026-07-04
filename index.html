@@ -262,6 +262,52 @@ function renderCart() {
   const name = (document.getElementById('vorname').value + ' ' + document.getElementById('nachname').value).trim();
   document.getElementById('vwz').textContent = (name || 'Vor- und Nachname des Spielers') + ' Vereinskleidung';
 }
+
+function resetOrderFormAfterSuccess() {
+  // Warenkorb vollständig leeren, damit keine Artikel in eine Folgebestellung übernommen werden.
+  cart.length = 0;
+  renderCart();
+
+  // Produktoptionen zurücksetzen.
+  items.forEach((it, idx) => {
+    const qty = document.getElementById('qty_' + idx);
+    if (qty) qty.value = 1;
+
+    const size = document.getElementById('size_' + idx);
+    if (size && size.options.length) size.selectedIndex = 0;
+
+    const shoe = document.getElementById('shoe_' + idx);
+    if (shoe) shoe.value = '';
+
+    const ini = document.getElementById('ini_' + idx);
+    if (ini) ini.checked = false;
+
+    const badge = document.getElementById('badge_' + idx);
+    if (badge) badge.checked = false;
+
+    const num = document.getElementById('num_' + idx);
+    if (num) num.checked = false;
+
+    const iniText = document.getElementById('initxt_' + idx);
+    if (iniText) iniText.value = '';
+
+    const numText = document.getElementById('numtxt_' + idx);
+    if (numText) numText.value = '';
+
+    updateRequiredCustomizationFields(idx);
+    currentPrice(it, idx);
+  });
+
+  // Spieler-/Kontaktdaten zurücksetzen, damit der nächste Besteller sauber startet.
+  ['vorname','nachname','email','telefon','jahrgang'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const mannschaft = document.getElementById('mannschaft');
+  if (mannschaft && mannschaft.options.length) mannschaft.selectedIndex = 0;
+  renderCart();
+}
+
 ['vorname','nachname'].forEach(id=>document.addEventListener('input', e=>renderCart()));
 function getCustomerData() {
   return {
@@ -505,6 +551,8 @@ Die Bestellung wurde in der Bestellübersicht gespeichert.
 Die Bestellung wird nach Zahlungseingang weiterverarbeitet.
 
 Sobald deine Bestellung bei Sport Weber in Saulheim abholbereit ist, wirst du vom Verein informiert.`;
+
+    resetOrderFormAfterSuccess();
   } catch (err) {
     console.error(err);
     box.textContent = `Die Bestellung konnte nicht automatisch versendet werden.
@@ -519,6 +567,6 @@ ${err?.text || err?.message || err}`;
 }
 renderProducts();
 </script>
-<div class="version-badge">Version 2.12</div>
+<div class="version-badge">Version 2.13</div>
 </body>
 </html>
