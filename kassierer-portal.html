@@ -14,7 +14,7 @@
   document.open();
   document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zugriff verweigert</title><style>body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#111}.box{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;max-width:420px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08)}button{background:#111;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
 .version-badge{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.85);border:1px solid #ddd;border-radius:999px;padding:4px 8px;z-index:9999;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.15</div>
+</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.16</div>
 </body></html>`);
   document.close();
   throw new Error("Zugriff verweigert");
@@ -58,6 +58,7 @@ th,td{border-bottom:1px solid #e5e5e5;padding:9px 8px;text-align:left;vertical-a
 th{background:#111;color:#fff;position:sticky;top:0;z-index:2}
 tr.paid-ja{background:#ecfdf3}
 tr.paid-nein{background:#fffafa}
+tr.payment-overdue{background:#ffd6d6!important;color:#5a0000}tr.payment-overdue td{border-bottom-color:#ff9b9b}tr.payment-overdue .badge{background:#ffb3b3;color:#5a0000}tr.payment-overdue select{border-color:#d00000;background:#fff5f5}
 .badge{display:inline-block;padding:5px 9px;border-radius:999px;font-weight:800;font-size:12px}
 .badge.open{background:#fff0d0;color:#7a4a00}
 .badge.ok{background:#dff8e7;color:#0b6b32}
@@ -83,6 +84,7 @@ button.danger-btn{background:#b0000b;color:#fff}
 button.danger-btn:hover{background:#790008}
 button.delete-order-btn{background:#7f1d1d;color:#fff;margin-top:10px}
 button.delete-order-btn:hover{background:#450a0a}
+button.reminder-btn{background:#b0000b;color:#fff;margin-top:8px;width:100%;padding:8px 6px;border-radius:10px}button.reminder-btn:hover{background:#790008}
 
 @media(max-width:1000px){.stats{grid-template-columns:repeat(2,1fr)}.detail-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:900px){
@@ -172,6 +174,15 @@ function esc(v){return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt
 function euro(n){return Number(n||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'});}
 function paidOf(o){return (o.bezahlt||'nein').toLowerCase()==='ja'?'ja':'nein';}
 
+function daysSinceCreated(o){
+  const d=new Date(o.created_at);
+  if(isNaN(d.getTime())) return 0;
+  return Math.floor((Date.now()-d.getTime())/(1000*60*60*24));
+}
+function isPaymentOverdue(o){
+  return paidOf(o)==='nein' && daysSinceCreated(o)>=5;
+}
+
 function setTab(tab){
   currentTab=tab;
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
@@ -214,12 +225,13 @@ function render(){
   document.getElementById('message').textContent=`${data.length} Bestellung(en) angezeigt. Sortierung: älteste zuerst.`;
   rows.innerHTML=data.map(o=>{
     const paid=paidOf(o);
-    const statusText=paid==='ja'?'an Sport Weber freigegeben':'Zahlung offen';
+    const overdue=isPaymentOverdue(o);
+    const statusText=paid==='ja'?'an Sport Weber freigegeben':(overdue?'Zahlung überfällig':'Zahlung offen');
     const badge=paid==='ja'?'ok':'open';
-    return `<tr class="paid-${paid}">
+    return `<tr class="paid-${paid} ${overdue?'payment-overdue':''}">
       <td data-label="Bestellnummer"><b>${esc(o.order_id||o.id)}</b><br><span class="small">${esc(o.created_at||'')}</span></td>
       <td data-label="Verein">${esc(o.verein||'FSV Nieder-Olm')}</td>
-      <td data-label="Status"><span class="badge ${badge}">${statusText}</span></td>
+      <td data-label="Status"><span class="badge ${badge}">${statusText}</span>${overdue?`<button class="reminder-btn" onclick="sendPaymentReminder(${o.id})">Zahlungserinnerung senden</button>`:""}</td>
       <td data-label="Jugend">${esc(o.mannschaft||'')}</td>
       <td data-label="Vorname">${esc(o.vorname||'')}</td>
       <td data-label="Nachname">${esc(o.nachname||'')}</td>
@@ -345,6 +357,61 @@ function exportCsv(){
   downloadCsv(`kassierer-bestellungen-${tabName}.csv`,rowsData);
 }
 
+
+async function sendPaymentReminder(id){
+  const o=allOrders.find(x=>x.id===id);
+  if(!o) return;
+  if(paidOf(o)==='ja') { alert('Diese Bestellung ist bereits als bezahlt markiert.'); return; }
+  if(!o.email) { alert('Keine E-Mail-Adresse beim Kunden hinterlegt.'); return; }
+  const orderId=o.order_id||o.id;
+  const name=`${o.vorname||''} ${o.nachname||''}`.trim();
+  if(!confirm(`Zahlungserinnerung für Bestellung ${orderId} an ${o.email} senden?`)) return;
+  const message=`Zahlungserinnerung zu deiner Bestellung ${orderId}
+
+Hallo ${name || 'liebes Vereinsmitglied'},
+
+zu deiner Bestellung im digitalen Bestellformular des FSV Nieder-Olm ist bisher noch kein Zahlungseingang vermerkt.
+
+Bitte überweise den offenen Betrag oder zahle per PayPal, damit die Bestellung weiterbearbeitet werden kann.
+
+Bestellnummer: ${orderId}
+Gesamtbetrag: ${euro(o.gesamtbetrag)}
+
+PayPal: @FSVNO
+Banküberweisung:
+Volksbank Darmstadt Mainz
+IBAN: DE37 5519 0000 0037 6010 10
+
+Verwendungszweck: ${orderId} / ${name}
+
+Bestelldetails:
+${o.bestellung || ''}
+
+Viele Grüße
+FSV Nieder-Olm`;
+  const params={
+    to_email:o.email,
+    reply_to:'kassierer@fsv-nieder-olm.de',
+    subject:`Zahlungserinnerung - Bestellung ${orderId}`,
+    order_id:orderId,
+    bestellnummer:orderId,
+    customer_name:name,
+    customer_email:o.email,
+    vorname:o.vorname||'',
+    nachname:o.nachname||'',
+    email:o.email||'',
+    telefon:o.telefon||'',
+    message
+  };
+  try{
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_WEBER_FREIGABE, params);
+    document.getElementById('message').textContent='Zahlungserinnerung wurde versendet.';
+  }catch(err){
+    console.error(err);
+    alert('Zahlungserinnerung konnte nicht versendet werden. Bitte EmailJS prüfen.');
+  }
+}
+
 async function sendWeberFreigabeMail(o){
   if(!window.emailjs || !EMAILJS_TEMPLATE_WEBER_FREIGABE) return false;
 
@@ -422,6 +489,6 @@ if(window.emailjs){ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
 document.getElementById('search').addEventListener('input',render);
 loadOrders();
 </script>
-<div class="version-badge">Version 2.15</div>
+<div class="version-badge">Version 2.16</div>
 </body>
 </html>
