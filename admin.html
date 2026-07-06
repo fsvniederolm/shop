@@ -30,6 +30,8 @@ input { width:100%; padding:12px; border:1px solid #ccc; border-radius:10px; fon
 .small { color:#666; font-size:12px; }
 .status { border-radius:999px; padding:3px 8px; background:#f1f1f1; display:inline-block; }
 @media(max-width:900px) { .grid,.charts { grid-template-columns:1fr; } .header-inner { align-items:flex-start; flex-direction:column; } }
+.version-badge{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.85);border:1px solid #ddd;border-radius:999px;padding:4px 8px;z-index:9999;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.order-no,.order-date{font-weight:900;font-size:15px;color:#111;white-space:nowrap;display:inline-block}
 </style>
 </head>
 <body>
@@ -73,7 +75,7 @@ input { width:100%; padding:12px; border:1px solid #ccc; border-radius:10px; fon
     <h3>Bestellungen</h3>
     <div style="overflow:auto; max-height:620px;">
       <table>
-        <thead><tr><th>Datum</th><th>Bestellnr.</th><th>Kunde</th><th>Kontakt</th><th>Mannschaft</th><th>Betrag</th><th>Status</th><th>Bestellung</th></tr></thead>
+        <thead><tr><th>Bestellnummer</th><th>Bestelldatum</th><th>Kunde</th><th>Kontakt</th><th>Mannschaft</th><th>Betrag</th><th>Status</th><th>Bestellung</th></tr></thead>
         <tbody id="ordersTable"></tbody>
       </table>
     </div>
@@ -91,6 +93,11 @@ let teamChart, articleChart;
 
 function euro(n) {
   return Number(n || 0).toLocaleString('de-DE', { style:'currency', currency:'EUR' });
+}
+function fmtDate(v){
+  if(!v) return '';
+  const d = new Date(v);
+  return isNaN(d) ? '' : d.toLocaleDateString('de-DE');
 }
 
 function login() {
@@ -147,8 +154,8 @@ function render() {
   document.getElementById('kpiItems').textContent = itemCount;
   document.getElementById('ordersTable').innerHTML = orders.map(o => `
     <tr>
-      <td>${new Date(o.created_at).toLocaleString('de-DE')}</td>
-      <td>${escapeHtml(o.order_id || '')}</td>
+      <td><span class="order-no">${escapeHtml(o.order_id || o.bestellnummer || o.id || '')}</span></td>
+      <td><span class="order-date">${fmtDate(o.created_at)}</span></td>
       <td>${escapeHtml((o.vorname || '') + ' ' + (o.nachname || ''))}</td>
       <td>${escapeHtml(o.email || '')}<br>${escapeHtml(o.telefon || '')}</td>
       <td>${escapeHtml(o.mannschaft || '')}</td>
@@ -181,8 +188,8 @@ function renderCharts(items) {
 }
 
 function exportCSV() {
-  const rows = [['created_at','order_id','vorname','nachname','email','telefon','jahrgang','mannschaft','gesamtbetrag','status','bestellung']];
-  for (const o of orders) rows.push([o.created_at,o.order_id,o.vorname,o.nachname,o.email,o.telefon,o.jahrgang,o.mannschaft,o.gesamtbetrag,o.status,o.bestellung]);
+  const rows = [['order_id','bestelldatum','vorname','nachname','email','telefon','jahrgang','mannschaft','gesamtbetrag','status','bestellung']];
+  for (const o of orders) rows.push([o.order_id||o.bestellnummer||o.id,fmtDate(o.created_at),o.vorname,o.nachname,o.email,o.telefon,o.jahrgang,o.mannschaft,o.gesamtbetrag,o.status,o.bestellung]);
   const csv = rows.map(r => r.map(v => '"' + String(v ?? '').replaceAll('"','""') + '"').join(';')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a');
@@ -196,5 +203,6 @@ function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
 }
 </script>
+<div class="version-badge">Version 2.17</div>
 </body>
 </html>

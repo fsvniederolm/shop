@@ -14,7 +14,7 @@
   document.open();
   document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zugriff verweigert</title><style>body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#111}.box{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;max-width:420px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08)}button{background:#111;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
 .version-badge{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.85);border:1px solid #ddd;border-radius:999px;padding:4px 8px;z-index:9999;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.16</div>
+</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.17</div>
 </body></html>`);
   document.close();
   throw new Error("Zugriff verweigert");
@@ -74,7 +74,8 @@ tr.payment-overdue{background:#ffd6d6!important;color:#5a0000}tr.payment-overdue
 .order-text{white-space:pre-wrap;font-family:Arial,Helvetica,sans-serif;font-size:15px;background:#fff;border-left:5px solid var(--red);padding:14px;border-radius:10px}
 .details-btn{background:#fff;color:#111;border:1px solid #ccc;width:100%;padding:9px 6px;text-align:center;display:inline-block}
 .details-btn:hover{background:#fff0f1;color:#111}
-.col-nr{width:11%}.col-verein{width:8%}.col-status{width:11%}.col-jugend{width:7%}.col-vorname{width:8%}.col-nachname{width:8%}.col-email{width:13%}.col-tel{width:8%}.col-betrag{width:7%}.col-bezahlt{width:8%}.col-details{width:11%}
+.order-no,.order-date{font-weight:900;font-size:15px;color:#111;white-space:nowrap;display:inline-block}
+.col-nr{width:10%}.col-date{width:8%}.col-verein{width:8%}.col-status{width:11%}.col-jugend{width:7%}.col-vorname{width:8%}.col-nachname{width:8%}.col-email{width:13%}.col-tel{width:8%}.col-betrag{width:7%}.col-bezahlt{width:8%}.col-details{width:11%}
 
 .edit-panel{margin-top:16px;border-top:1px solid #ffd2d6;padding-top:14px}
 .edit-panel h4{margin:0 0 10px;color:var(--red-dark)}
@@ -133,10 +134,11 @@ button.reminder-btn{background:#b0000b;color:#fff;margin-top:8px;width:100%;padd
 
     <div class="table-wrap">
       <table>
-        <colgroup><col class="col-nr"><col class="col-verein"><col class="col-status"><col class="col-jugend"><col class="col-vorname"><col class="col-nachname"><col class="col-email"><col class="col-tel"><col class="col-betrag"><col class="col-bezahlt"><col class="col-details"></colgroup>
+        <colgroup><col class="col-nr"><col class="col-date"><col class="col-verein"><col class="col-status"><col class="col-jugend"><col class="col-vorname"><col class="col-nachname"><col class="col-email"><col class="col-tel"><col class="col-betrag"><col class="col-bezahlt"><col class="col-details"></colgroup>
         <thead>
           <tr>
             <th>Bestellnummer</th>
+            <th>Bestelldatum</th>
             <th>Verein</th>
             <th>Status</th>
             <th>Jugend</th>
@@ -172,6 +174,7 @@ const headers={"apikey":SUPABASE_PUBLISHABLE_KEY,"Authorization":`Bearer ${SUPAB
 
 function esc(v){return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
 function euro(n){return Number(n||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'});}
+function fmtDate(v){if(!v)return '';const d=new Date(v);return isNaN(d)?'':d.toLocaleDateString('de-DE');}
 function paidOf(o){return (o.bezahlt||'nein').toLowerCase()==='ja'?'ja':'nein';}
 
 function daysSinceCreated(o){
@@ -229,7 +232,8 @@ function render(){
     const statusText=paid==='ja'?'an Sport Weber freigegeben':(overdue?'Zahlung überfällig':'Zahlung offen');
     const badge=paid==='ja'?'ok':'open';
     return `<tr class="paid-${paid} ${overdue?'payment-overdue':''}">
-      <td data-label="Bestellnummer"><b>${esc(o.order_id||o.id)}</b><br><span class="small">${esc(o.created_at||'')}</span></td>
+      <td data-label="Bestellnummer"><span class="order-no">${esc(o.order_id||o.id)}</span></td>
+      <td data-label="Bestelldatum"><span class="order-date">${fmtDate(o.created_at)}</span></td>
       <td data-label="Verein">${esc(o.verein||'FSV Nieder-Olm')}</td>
       <td data-label="Status"><span class="badge ${badge}">${statusText}</span>${overdue?`<button class="reminder-btn" onclick="sendPaymentReminder(${o.id})">Zahlungserinnerung senden</button>`:""}</td>
       <td data-label="Jugend">${esc(o.mannschaft||'')}</td>
@@ -277,7 +281,7 @@ function renderEditableItems(o){
   return `<div class="edit-panel"><h4>Bestellung bearbeiten</h4><p class="small">Der Kassierer kann einzelne Positionen entfernen. Der Gesamtbetrag wird automatisch neu berechnet und in allen Portalen übernommen.</p>${itemsHtml}<div style="display:flex;justify-content:flex-end;align-items:center;margin:14px 0;font-size:18px;font-weight:900;color:var(--red-dark);">Neuer Gesamtbetrag: ${euro(o.gesamtbetrag)}</div><button class="delete-order-btn" onclick="deleteOrder(${o.id})">Ganze Bestellung löschen</button></div>`;
 }
 function detailRow(o){
-  return `<tr class="detail-row"><td colspan="11"><div class="detail-card"><div class="detail-title">Bestelldetails – ${esc(o.order_id||o.id)}</div><div class="detail-grid"><div class="detail-box"><b>Verein</b>${esc(o.verein||'FSV Nieder-Olm')}</div><div class="detail-box"><b>Kunde</b>${esc(((o.vorname||'')+' '+(o.nachname||'')).trim())}</div><div class="detail-box"><b>Jugend</b>${esc(o.mannschaft||'')}</div><div class="detail-box"><b>Gesamtbetrag</b>${euro(o.gesamtbetrag)}</div></div>${renderEditableItems(o)}</div></td></tr>`;
+  return `<tr class="detail-row"><td colspan="12"><div class="detail-card"><div class="detail-title">Bestelldetails – ${esc(o.order_id||o.id)}</div><div class="detail-grid"><div class="detail-box"><b>Verein</b>${esc(o.verein||'FSV Nieder-Olm')}</div><div class="detail-box"><b>Kunde</b>${esc(((o.vorname||'')+' '+(o.nachname||'')).trim())}</div><div class="detail-box"><b>Jugend</b>${esc(o.mannschaft||'')}</div><div class="detail-box"><b>Gesamtbetrag</b>${euro(o.gesamtbetrag)}</div></div>${renderEditableItems(o)}</div></td></tr>`;
 }
 function toggleDetails(id){
   if(openDetails.has(id)){openDetails.delete(id);}else{openDetails.add(id);}
@@ -337,9 +341,10 @@ function downloadCsv(filename, rowsData){
 }
 function exportCsv(){
   const data=getFilteredOrders();
-  const header=['Bestellnummer','Verein','Status','Jugend','Vorname','Nachname','E-Mail','Telefon','Betrag','Bezahlt','Sport-Weber-Status','Bestellung','Erstellt am'];
+  const header=['Bestellnummer','Bestelldatum','Verein','Status','Jugend','Vorname','Nachname','E-Mail','Telefon','Betrag','Bezahlt','Sport-Weber-Status','Bestellung','Erstellt am'];
   const rowsData=[header,...data.map(o=>[
     o.order_id||o.id,
+    fmtDate(o.created_at),
     o.verein||'FSV Nieder-Olm',
     paidOf(o)==='ja'?'an Sport Weber freigegeben':'Zahlung offen',
     o.mannschaft||'',
@@ -489,6 +494,6 @@ if(window.emailjs){ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
 document.getElementById('search').addEventListener('input',render);
 loadOrders();
 </script>
-<div class="version-badge">Version 2.16</div>
+<div class="version-badge">Version 2.17</div>
 </body>
 </html>
