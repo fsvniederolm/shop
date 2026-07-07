@@ -3,7 +3,7 @@
 <head>
 <script>
 (function(){
-  const LOGIN_KEY = "fsv_kassierer_portal_auth_v214";
+  const LOGIN_KEY = "fsv_kassierer_portal_auth_v218";
   const PASSWORD = "fsv1893";
   if (sessionStorage.getItem(LOGIN_KEY) === "ok") return;
   const eingabe = window.prompt("Passwort für Kassiererportal eingeben:");
@@ -14,7 +14,7 @@
   document.open();
   document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zugriff verweigert</title><style>body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#111}.box{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;max-width:420px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08)}button{background:#111;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
 .version-badge{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.85);border:1px solid #ddd;border-radius:999px;padding:4px 8px;z-index:9999;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.17</div>
+</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.18</div>
 </body></html>`);
   document.close();
   throw new Error("Zugriff verweigert");
@@ -183,7 +183,7 @@ function daysSinceCreated(o){
   return Math.floor((Date.now()-d.getTime())/(1000*60*60*24));
 }
 function isPaymentOverdue(o){
-  return paidOf(o)==='nein' && daysSinceCreated(o)>=5;
+  return paidOf(o)==='nein' && daysSinceCreated(o)>=3;
 }
 
 function setTab(tab){
@@ -194,7 +194,7 @@ function setTab(tab){
 
 async function loadOrders(){
   document.getElementById('message').textContent='Lade Bestellungen ...';
-  const url=`${SUPABASE_URL}/rest/v1/orders?select=id,created_at,verein,order_id,status,mannschaft,vorname,nachname,email,telefon,bezahlt,gesamtbetrag,bestellung,sport_weber_status,paid_notification_sent&order=created_at.asc`;
+  const url=`${SUPABASE_URL}/rest/v1/orders?select=id,created_at,verein,order_id,status,mannschaft,vorname,nachname,email,telefon,bezahlt,gesamtbetrag,bestellung,sport_weber_status,paid_notification_sent,zahlungserinnerung_gesendet,zahlungserinnerung_gesendet_am&order=created_at.asc`;
   const res=await fetch(url,{headers});
   if(!res.ok){document.getElementById('message').textContent='Fehler beim Laden: '+await res.text();return;}
   allOrders=await res.json();
@@ -229,13 +229,14 @@ function render(){
   rows.innerHTML=data.map(o=>{
     const paid=paidOf(o);
     const overdue=isPaymentOverdue(o);
-    const statusText=paid==='ja'?'an Sport Weber freigegeben':(overdue?'Zahlung überfällig':'Zahlung offen');
+    const reminderSent = o.zahlungserinnerung_gesendet === true || String(o.zahlungserinnerung_gesendet).toLowerCase() === 'true';
+    const statusText=paid==='ja'?'an Sport Weber freigegeben':(overdue?(reminderSent?'Zahlungserinnerung gesendet':'Zahlung überfällig'):'Zahlung offen');
     const badge=paid==='ja'?'ok':'open';
     return `<tr class="paid-${paid} ${overdue?'payment-overdue':''}">
       <td data-label="Bestellnummer"><span class="order-no">${esc(o.order_id||o.id)}</span></td>
       <td data-label="Bestelldatum"><span class="order-date">${fmtDate(o.created_at)}</span></td>
       <td data-label="Verein">${esc(o.verein||'FSV Nieder-Olm')}</td>
-      <td data-label="Status"><span class="badge ${badge}">${statusText}</span>${overdue?`<button class="reminder-btn" onclick="sendPaymentReminder(${o.id})">Zahlungserinnerung senden</button>`:""}</td>
+      <td data-label="Status"><span class="badge ${badge}">${statusText}</span>${overdue && !reminderSent?`<button class="reminder-btn" onclick="sendPaymentReminder(${o.id})">Zahlungserinnerung senden</button>`:""}${reminderSent?`<div class="small">am ${fmtDate(o.zahlungserinnerung_gesendet_am)}</div>`:""}</td>
       <td data-label="Jugend">${esc(o.mannschaft||'')}</td>
       <td data-label="Vorname">${esc(o.vorname||'')}</td>
       <td data-label="Nachname">${esc(o.nachname||'')}</td>
@@ -410,7 +411,15 @@ FSV Nieder-Olm`;
   };
   try{
     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_WEBER_FREIGABE, params);
+    await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`,{
+      method:'PATCH',
+      headers:{...headers,'Prefer':'return=minimal'},
+      body:JSON.stringify({zahlungserinnerung_gesendet:true, zahlungserinnerung_gesendet_am:new Date().toISOString()})
+    });
+    o.zahlungserinnerung_gesendet = true;
+    o.zahlungserinnerung_gesendet_am = new Date().toISOString();
     document.getElementById('message').textContent='Zahlungserinnerung wurde versendet.';
+    render();
   }catch(err){
     console.error(err);
     alert('Zahlungserinnerung konnte nicht versendet werden. Bitte EmailJS prüfen.');
@@ -494,6 +503,6 @@ if(window.emailjs){ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
 document.getElementById('search').addEventListener('input',render);
 loadOrders();
 </script>
-<div class="version-badge">Version 2.17</div>
+<div class="version-badge">Version 2.18</div>
 </body>
 </html>
