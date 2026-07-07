@@ -1,0 +1,21 @@
+name: Zahlungserinnerung
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  send-payment-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository laden
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Zahlungserinnerungen prüfen und senden
+        run: node scripts/send-payment-reminders.js
