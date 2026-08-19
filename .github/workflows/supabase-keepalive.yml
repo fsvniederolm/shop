@@ -1,18 +1,39 @@
-name: Supabase Keep Alive
+name: Supabase Keepalive
 
 on:
   schedule:
-    - cron: "0 8 */3 * *"
+    - cron: "17 1,7,13,19 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   keepalive:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 5
     steps:
-      - name: Query orders table
+      - name: Supabase-Datenbank aktiv halten
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          curl -i \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/orders?select=id&limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::GitHub Secrets SUPABASE_URL und/oder SUPABASE_ANON_KEY fehlen."
+            exit 1
+          fi
+
+          HTTP_CODE=$(curl --silent --show-error             --output /tmp/supabase-response.txt             --write-out "%{http_code}"             --max-time 30             --get "${SUPABASE_URL%/}/rest/v1/orders"             --data-urlencode "select=id"             --data-urlencode "limit=1"             -H "apikey: ${SUPABASE_ANON_KEY}"             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}"             -H "Accept: application/json")
+
+          echo "Supabase HTTP-Status: ${HTTP_CODE}"
+
+          if [ "${HTTP_CODE}" -lt 200 ] || [ "${HTTP_CODE}" -ge 300 ]; then
+            echo "::error::Keepalive-Datenbankabfrage fehlgeschlagen (HTTP ${HTTP_CODE})."
+            cat /tmp/supabase-response.txt
+            exit 1
+          fi
+
+          echo "Keepalive erfolgreich: echte Leseabfrage auf public.orders wurde ausgeführt."
