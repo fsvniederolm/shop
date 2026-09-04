@@ -3,21 +3,21 @@
 <head>
 <script>
 (function(){
-  const LOGIN_KEY = "fsv_kassierer_portal_auth_v219";
+  const LOGIN_KEY = "fsv_kassierer_portal_auth_v220";
   const PASSWORD = "fsv1893";
+
   if (sessionStorage.getItem(LOGIN_KEY) === "ok") return;
-  const eingabe = window.prompt("Passwort für Kassiererportal eingeben:");
-  if (eingabe === PASSWORD) {
-    sessionStorage.setItem(LOGIN_KEY, "ok");
-    return;
+
+  while (true) {
+    const eingabe = window.prompt("Passwort für Kassiererportal eingeben:");
+
+    if (eingabe === PASSWORD) {
+      sessionStorage.setItem(LOGIN_KEY, "ok");
+      break;
+    }
+
+    window.alert("Passwort nicht korrekt. Bitte erneut versuchen.");
   }
-  document.open();
-  document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zugriff verweigert</title><style>body{font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#111}.box{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;max-width:420px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.08)}button{background:#111;color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
-.version-badge{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.85);border:1px solid #ddd;border-radius:999px;padding:4px 8px;z-index:9999;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-</style></head><body><div class="box"><h1>Zugriff verweigert</h1><p>Das eingegebene Passwort ist falsch.</p><button onclick="location.reload()">Erneut versuchen</button></div><div class="version-badge">Version 2.19</div>
-</body></html>`);
-  document.close();
-  throw new Error("Zugriff verweigert");
 })();
 </script>
 
@@ -75,7 +75,8 @@ tr.payment-overdue{background:#ffd6d6!important;color:#5a0000}tr.payment-overdue
 .details-btn{background:#fff;color:#111;border:1px solid #ccc;width:100%;padding:9px 6px;text-align:center;display:inline-block}
 .details-btn:hover{background:#fff0f1;color:#111}
 .order-no,.order-date{font-weight:900;font-size:15px;color:#111;white-space:nowrap;display:inline-block}
-.col-nr{width:10%}.col-date{width:8%}.col-verein{width:8%}.col-status{width:11%}.col-jugend{width:7%}.col-vorname{width:8%}.col-nachname{width:8%}.col-email{width:13%}.col-tel{width:8%}.col-betrag{width:7%}.col-bezahlt{width:8%}.col-details{width:11%}
+.col-nr{width:9%}.col-date{width:7%}.col-verein{width:7%}.col-status{width:10%}.col-jugend{width:6%}.col-vorname{width:7%}.col-nachname{width:7%}.col-email{width:11%}.col-tel{width:7%}.col-betrag{width:6%}.col-bezahlt{width:6%}.col-rechnung{width:7%}.col-beleg{width:6%}.col-details{width:8%}
+.beleg-input{width:100%;min-width:0!important;text-align:center;font-weight:800;letter-spacing:.08em}.invoice-select{width:100%;min-width:0}
 
 .edit-panel{margin-top:16px;border-top:1px solid #ffd2d6;padding-top:14px}
 .edit-panel h4{margin:0 0 10px;color:var(--red-dark)}
@@ -134,7 +135,7 @@ button.reminder-btn{background:#b0000b;color:#fff;margin-top:8px;width:100%;padd
 
     <div class="table-wrap">
       <table>
-        <colgroup><col class="col-nr"><col class="col-date"><col class="col-verein"><col class="col-status"><col class="col-jugend"><col class="col-vorname"><col class="col-nachname"><col class="col-email"><col class="col-tel"><col class="col-betrag"><col class="col-bezahlt"><col class="col-details"></colgroup>
+        <colgroup><col class="col-nr"><col class="col-date"><col class="col-verein"><col class="col-status"><col class="col-jugend"><col class="col-vorname"><col class="col-nachname"><col class="col-email"><col class="col-tel"><col class="col-betrag"><col class="col-bezahlt"><col class="col-rechnung"><col class="col-beleg"><col class="col-details"></colgroup>
         <thead>
           <tr>
             <th>Bestellnummer</th>
@@ -148,6 +149,8 @@ button.reminder-btn{background:#b0000b;color:#fff;margin-top:8px;width:100%;padd
             <th>Telefon</th>
             <th>Betrag</th>
             <th>Bezahlt</th>
+            <th>Weber-Rechnung</th>
+            <th>Belegnr.</th>
             <th>Details</th>
           </tr>
         </thead>
@@ -176,6 +179,9 @@ function esc(v){return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt
 function euro(n){return Number(n||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'});}
 function fmtDate(v){if(!v)return '';const d=new Date(v);return isNaN(d)?'':d.toLocaleDateString('de-DE');}
 function paidOf(o){return (o.bezahlt||'nein').toLowerCase()==='ja'?'ja':'nein';}
+function weberInvoiceOf(o){
+  return o.weber_rechnung_eingegangen === true || String(o.weber_rechnung_eingegangen).toLowerCase() === 'true';
+}
 
 function daysSinceCreated(o){
   const d=new Date(o.created_at);
@@ -194,7 +200,7 @@ function setTab(tab){
 
 async function loadOrders(){
   document.getElementById('message').textContent='Lade Bestellungen ...';
-  const url=`${SUPABASE_URL}/rest/v1/orders?select=id,created_at,verein,order_id,status,mannschaft,vorname,nachname,email,telefon,bezahlt,gesamtbetrag,bestellung,sport_weber_status,paid_notification_sent,zahlungserinnerung_gesendet,zahlungserinnerung_gesendet_am&order=created_at.asc`;
+  const url=`${SUPABASE_URL}/rest/v1/orders?select=id,created_at,verein,order_id,status,mannschaft,vorname,nachname,email,telefon,bezahlt,gesamtbetrag,bestellung,sport_weber_status,paid_notification_sent,zahlungserinnerung_gesendet,zahlungserinnerung_gesendet_am,weber_rechnung_eingegangen,belegnummer&order=created_at.asc`;
   const res=await fetch(url,{headers});
   if(!res.ok){document.getElementById('message').textContent='Fehler beim Laden: '+await res.text();return;}
   allOrders=await res.json();
@@ -217,7 +223,7 @@ function getFilteredOrders(){
   return allOrders.filter(o=>{
     const paid=paidOf(o);
     const tabOk=currentTab==='all' || (currentTab==='open'&&paid==='nein') || (currentTab==='paid'&&paid==='ja');
-    const hay=[o.verein,o.order_id,o.id,o.mannschaft,o.vorname,o.nachname,o.email,o.telefon,o.status,o.bestellung,o.gesamtbetrag,o.bezahlt,o.sport_weber_status,o.created_at].join(' ').toLowerCase();
+    const hay=[o.verein,o.order_id,o.id,o.mannschaft,o.vorname,o.nachname,o.email,o.telefon,o.status,o.bestellung,o.gesamtbetrag,o.bezahlt,o.sport_weber_status,o.weber_rechnung_eingegangen,o.belegnummer,o.created_at].join(' ').toLowerCase();
     return tabOk && (!q||hay.includes(q));
   });
 }
@@ -244,6 +250,8 @@ function render(){
       <td data-label="Telefon"><a href="tel:${esc(o.telefon||'')}">${esc(o.telefon||'')}</a></td>
       <td data-label="Betrag" class="total">${euro(o.gesamtbetrag)}</td>
       <td data-label="Bezahlt"><select onchange="setPaid(${o.id},this.value)"><option value="nein" ${paid==='nein'?'selected':''}>nein</option><option value="ja" ${paid==='ja'?'selected':''}>ja</option></select></td>
+      <td data-label="Weber-Rechnung"><select class="invoice-select" onchange="setWeberInvoice(${o.id},this.value)"><option value="nein" ${!weberInvoiceOf(o)?'selected':''}>nein</option><option value="ja" ${weberInvoiceOf(o)?'selected':''}>ja</option></select></td>
+      <td data-label="Belegnr."><input class="beleg-input" id="beleg-${o.id}" value="${esc(o.belegnummer||'')}" inputmode="numeric" maxlength="3" pattern="[0-9]{3}" placeholder="000" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,3)" onchange="saveBelegnummer(${o.id},this.value)"></td>
       <td data-label="Details"><button class="details-btn" onclick="toggleDetails(${o.id})">${openDetails.has(o.id)?'Ausblenden':'Details'}</button></td>
     </tr>${openDetails.has(o.id)?detailRow(o):''}`;
   }).join('');
@@ -342,7 +350,7 @@ function downloadCsv(filename, rowsData){
 }
 function exportCsv(){
   const data=getFilteredOrders();
-  const header=['Bestellnummer','Bestelldatum','Verein','Status','Jugend','Vorname','Nachname','E-Mail','Telefon','Betrag','Bezahlt','Sport-Weber-Status','Bestellung','Erstellt am'];
+  const header=['Bestellnummer','Bestelldatum','Verein','Status','Jugend','Vorname','Nachname','E-Mail','Telefon','Betrag','Bezahlt','Weber-Rechnung eingegangen','Belegnummer','Sport-Weber-Status','Bestellung','Erstellt am'];
   const rowsData=[header,...data.map(o=>[
     o.order_id||o.id,
     fmtDate(o.created_at),
@@ -355,6 +363,8 @@ function exportCsv(){
     o.telefon||'',
     Number(o.gesamtbetrag||0).toFixed(2).replace('.',','),
     paidOf(o),
+    weberInvoiceOf(o)?'ja':'nein',
+    o.belegnummer||'',
     o.sport_weber_status||'',
     o.bestellung||'',
     o.created_at||''
@@ -475,6 +485,76 @@ ${portalLink}`;
   catch(err){ console.error(err); alert('Zahlung gespeichert, aber E-Mail an Sport Weber konnte nicht gesendet werden. Bitte EmailJS prüfen.'); return false; }
 }
 
+
+async function saveBelegnummer(id,value){
+  const o=allOrders.find(x=>x.id===id);
+  const clean=String(value||'').replace(/\D/g,'').slice(0,3);
+  const input=document.getElementById(`beleg-${id}`);
+  if(input) input.value=clean;
+
+  if(clean && !/^\d{3}$/.test(clean)){
+    alert('Die Belegnummer muss genau dreistellig sein, z. B. 001 oder 123.');
+    if(input) input.value=o?.belegnummer||'';
+    return false;
+  }
+  if(weberInvoiceOf(o) && !/^\d{3}$/.test(clean)){
+    alert('Bei eingegangener Weber-Rechnung ist eine dreistellige Belegnummer erforderlich.');
+    if(input) input.value=o?.belegnummer||'';
+    return false;
+  }
+
+  const valueToSave=clean || null;
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`,{
+    method:'PATCH',
+    headers:{...headers,"Prefer":"return=minimal"},
+    body:JSON.stringify({belegnummer:valueToSave})
+  });
+  if(!res.ok){
+    alert('Belegnummer konnte nicht gespeichert werden: '+await res.text());
+    if(input) input.value=o?.belegnummer||'';
+    return false;
+  }
+  if(o) o.belegnummer=valueToSave;
+  document.getElementById('message').textContent='Belegnummer gespeichert.';
+  return true;
+}
+
+async function setWeberInvoice(id,value){
+  const o=allOrders.find(x=>x.id===id);
+  if(!o) return;
+  const received=value==='ja';
+  const input=document.getElementById(`beleg-${id}`);
+  const beleg=String(input?.value||o.belegnummer||'').replace(/\D/g,'').slice(0,3);
+
+  if(received && !/^\d{3}$/.test(beleg)){
+    alert('Bitte zuerst eine dreistellige Belegnummer eingeben (z. B. 001 oder 123).');
+    render();
+    return;
+  }
+
+  const patch={
+    weber_rechnung_eingegangen:received,
+    belegnummer:beleg || null
+  };
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`,{
+    method:'PATCH',
+    headers:{...headers,"Prefer":"return=minimal"},
+    body:JSON.stringify(patch)
+  });
+  if(!res.ok){
+    alert('Status der Weber-Rechnung konnte nicht gespeichert werden: '+await res.text());
+    render();
+    return;
+  }
+
+  o.weber_rechnung_eingegangen=received;
+  o.belegnummer=beleg || null;
+  document.getElementById('message').textContent=received
+    ? `Weber-Rechnung als eingegangen gespeichert. Belegnummer: ${beleg}`
+    : 'Weber-Rechnung als nicht eingegangen gespeichert.';
+  render();
+}
+
 async function setPaid(id,value){
   const o=allOrders.find(x=>x.id===id);
   const wasPaid=(paidOf(o)==='ja');
@@ -503,6 +583,6 @@ if(window.emailjs){ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
 document.getElementById('search').addEventListener('input',render);
 loadOrders();
 </script>
-<div class="version-badge">Version 2.19</div>
+<div class="version-badge">Version 2.20</div>
 </body>
 </html>
