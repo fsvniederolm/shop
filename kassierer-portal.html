@@ -323,13 +323,34 @@ async function deleteOrder(id){
   if(!o) return;
   const label=o.order_id||o.id;
   if(!confirm('Ganze Bestellung '+label+' wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
-  const res=await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`,{method:'DELETE',headers:{...headers,"Prefer":"return=minimal"}});
-  if(!res.ok){alert('Bestellung konnte nicht gelöscht werden: '+await res.text());return;}
+
+  // return=representation ist absichtlich gesetzt:
+  // Supabase/PostgREST kann bei einer durch RLS blockierten DELETE-Anfrage
+  // trotzdem eine erfolgreiche HTTP-Antwort liefern, obwohl 0 Zeilen gelöscht wurden.
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${id}`,{
+    method:'DELETE',
+    headers:{...headers,"Prefer":"return=representation"}
+  });
+
+  if(!res.ok){
+    alert('Bestellung konnte nicht gelöscht werden: '+await res.text());
+    return;
+  }
+
+  let deleted=[];
+  try{ deleted=await res.json(); }catch(e){ deleted=[]; }
+
+  if(!Array.isArray(deleted) || deleted.length===0){
+    alert('Die Bestellung wurde NICHT gelöscht. Supabase hat keine Zeile gelöscht. Bitte die DELETE-Berechtigung (RLS-Policy) für die Tabelle orders prüfen bzw. das mitgelieferte SQL-Skript ausführen.');
+    await loadOrders();
+    return;
+  }
+
   allOrders=allOrders.filter(x=>x.id!==id);
   openDetails.delete(id);
   updateStats();
   render();
-  document.getElementById('message').textContent='Bestellung gelöscht.';
+  document.getElementById('message').textContent='Bestellung '+label+' wurde dauerhaft gelöscht.';
 }
 
 
@@ -583,6 +604,6 @@ if(window.emailjs){ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
 document.getElementById('search').addEventListener('input',render);
 loadOrders();
 </script>
-<div class="version-badge">Version 2.20</div>
+<div class="version-badge">Version 2.21</div>
 </body>
 </html>
