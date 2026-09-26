@@ -37,7 +37,7 @@ button{border:0;border-radius:11px;padding:12px 16px;font-weight:800;cursor:poin
 <body>
 <header><div class="head">
 <img src="fsv-nieder-olm-logo.jpg" class="logo" alt="FSV Nieder-Olm">
-<div><h1>Antrag Leistungsvergleich</h1><div class="sub">FSV Nieder-Olm - Angaben für den Turnierantrag</div></div>
+<div><h1>FSV Nieder-Olm - Turnierantrag</h1><div class="sub">Angaben für den Turnierantrag</div></div>
 </div></header>
 
 <main>
@@ -73,12 +73,20 @@ button{border:0;border-radius:11px;padding:12px 16px;font-weight:800;cursor:poin
 <button type="button" class="secondary" onclick="addTeam()">+ Mannschaft hinzufügen</button>
 </section>
 
+
+<section class="panel">
+<h2>Turnierplan</h2>
+<div class="hint" style="margin-bottom:10px">Bitte den Turnierplan hochladen. Der Turnierplan ist für jeden Antrag erforderlich.</div>
+<label for="turnierplan">Turnierplan *</label>
+<input id="turnierplan" type="file" accept="application/pdf,image/*,.pdf,.jpg,.jpeg,.png,.webp,.heic,.heif" required>
+</section>
+
 <section class="panel">
 <button id="sendBtn" class="submit" onclick="submitApplication()">Turnierantrag erstellen</button>
 <div id="msg" class="msg"></div>
 </section>
 </main>
-<div class="version">Version 1.4</div>
+<div class="version">Version 1.6</div>
 
 <script>
 const EMAILJS_PUBLIC_KEY="4gRqrmu7JPDzAYBFo";
@@ -119,6 +127,8 @@ function requireData(){
  for(const id of ids){const e=document.getElementById(id);if(!e.value.trim()){e.focus();throw new Error("Bitte alle Pflichtfelder ausfüllen.");}}
  const teams=[...document.querySelectorAll(".team")].map(x=>x.value.trim()).filter(Boolean);
  if(!teams.length)throw new Error("Bitte mindestens eine teilnehmende Mannschaft eintragen.");
+ const plan=document.getElementById("turnierplan").files[0];
+ if(!plan)throw new Error("Bitte den Turnierplan hochladen.");
  return teams;
 }
 
@@ -174,6 +184,10 @@ async function uploadPdf(bytes,filename){
  if(!res.ok) throw new Error("PDF konnte nicht in Supabase gespeichert werden: "+await res.text());
  return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
 }
+async function uploadPdfFile(file,filename){
+ const bytes=await file.arrayBuffer();
+ return uploadPdf(new Uint8Array(bytes),filename);
+}
 async function saveApplication(data){
  const res=await fetch(`${SUPABASE_URL}/rest/v1/turnierantraege`,{
    method:"POST",
@@ -198,6 +212,11 @@ async function submitApplication(){
 
    showMsg("PDF erstellt. Antrag wird gespeichert ...","ok");
    const pdfUrl=await uploadPdf(pdfBytes,filename);
+   const planFile=document.getElementById("turnierplan").files[0];
+   showMsg("Turnierantrag erstellt. Turnierplan wird gespeichert ...","ok");
+   const originalExt=(planFile.name.match(/\.[a-zA-Z0-9]+$/)||[""])[0].toLowerCase();
+   const planFilename=`Turnierplan_${document.getElementById("datum").value}_${age}${originalExt}`;
+   const turnierplanUrl=await uploadPdfFile(planFile,planFilename);
    const trainer=document.getElementById("ansprechpartner").value.trim();
    const telefon=document.getElementById("telefon").value.trim();
    const ort=document.getElementById("ort").value.trim();
@@ -206,17 +225,17 @@ async function submitApplication(){
    await saveApplication({datum:document.getElementById("datum").value,uhrzeit_von:von,uhrzeit_bis:bis,ort,altersklasse:age,ansprechpartner:trainer,telefon,mannschaften:teams,pdf_url:pdfUrl});
 
    showMsg("Antrag gespeichert. E-Mail wird versendet ...","ok");
-   const message=`Neuer Turnierantrag / Leistungsvergleich\n\nAltersklasse: ${age}\nDatum: ${datum}\nUhrzeit: ${von} bis ${bis}\nSpielort: ${ort}\n\nTrainer / Ansprechpartner: ${trainer}\nTelefon: ${telefon}\n\nTeilnehmende Mannschaften:\n${teams.join("\n")}\n\nTurnierantrag als PDF:\n${pdfUrl}`;
+   const message=`Neuer Turnierantrag / Leistungsvergleich\n\nAltersklasse: ${age}\nDatum: ${datum}\nUhrzeit: ${von} bis ${bis}\nSpielort: ${ort}\n\nTrainer / Ansprechpartner: ${trainer}\nTelefon: ${telefon}\n\nTeilnehmende Mannschaften:\n${teams.join("\n")}\n\nTurnierantrag als PDF:\n${pdfUrl}\n\nTurnierplan:\n${turnierplanUrl}`;
    await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{
      to_email:RECIPIENT,
      reply_to:RECIPIENT,
      subject:`Neuer Turnierantrag - ${age} - ${datum}`,
      message,
-     trainer,telefon,datum,uhrzeit_von:von,uhrzeit_bis:bis,ort,altersklasse:age,mannschaften:teams.join(", "),pdf_url:pdfUrl
+     trainer,telefon,datum,uhrzeit_von:von,uhrzeit_bis:bis,ort,altersklasse:age,mannschaften:teams.join(", "),pdf_url:pdfUrl,turnierplan_url:turnierplanUrl
    });
 
    downloadPdf(pdfBytes,filename);
-   showMsg("Erfolgreich: Der Turnierantrag wurde erstellt, gespeichert und per E-Mail gemeldet. Eine PDF-Kopie wurde zusätzlich heruntergeladen.","ok");
+   showMsg("Erfolgreich: Turnierantrag und Turnierplan wurden gespeichert und per E-Mail gemeldet. Eine PDF-Kopie des Turnierantrags wurde zusätzlich heruntergeladen.","ok");
  }catch(err){
    console.error(err);
    showMsg("Nicht versendet: "+(err?.text||err?.message||String(err))+"\n\nFalls das PDF bereits erstellt wurde, prüfe bitte die EmailJS-Konfiguration gemäß README.","err");
