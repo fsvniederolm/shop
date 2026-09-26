@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FSV Nieder-Olm - Leistungsvergleich</title>
+<style>
+:root{--red:#e30613;--dark:#151515;--bg:#f3f4f6;--border:#e5e7eb;--green:#118a41;--muted:#6b7280}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#111}
+header{background:#fff;border-bottom:6px solid var(--red);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.head{max-width:1050px;margin:auto;padding:16px 20px;display:flex;align-items:center;gap:16px}
+.logo{width:74px;height:74px;object-fit:contain}
+h1{margin:0;font-size:27px}.sub{color:#555;margin-top:4px}
+main{max-width:1050px;margin:22px auto;padding:0 16px 50px}
+.panel{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.05);margin-bottom:18px}
+h2{margin:0 0 16px;font-size:20px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+label{display:block;font-weight:800;font-size:13px;margin-bottom:6px}
+input,select{width:100%;padding:12px;border:1px solid #cfd3d8;border-radius:10px;font-size:15px;background:#fff}
+.hint{font-size:12px;color:var(--muted);margin-top:5px}
+.fixed{background:#fff5f5;border-left:5px solid var(--red);padding:13px;border-radius:10px;font-size:13px;line-height:1.55}
+.team-row{display:grid;grid-template-columns:42px 1fr 44px;gap:9px;align-items:center;margin:9px 0}
+.team-no{font-weight:900;text-align:center}
+button{border:0;border-radius:11px;padding:12px 16px;font-weight:800;cursor:pointer;font-size:14px}
+.secondary{background:#111;color:#fff}.secondary:hover{background:#333}
+.remove{background:#eee;color:#900;padding:10px}.remove:hover{background:#ffdede}
+.submit{width:100%;background:var(--red);color:#fff;font-size:17px;padding:15px}.submit:hover{background:#b0000b}.submit:disabled{opacity:.55;cursor:not-allowed}
+.msg{margin-top:14px;padding:12px;border-radius:10px;display:none;white-space:pre-wrap}
+.msg.ok{display:block;background:#eaf8ef;color:#075d2b}.msg.err{display:block;background:#fff0f0;color:#8b0000}
+.version{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.9);border:1px solid #ddd;border-radius:999px;padding:4px 8px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.head{align-items:flex-start}h1{font-size:22px}.logo{width:60px;height:60px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+<header><div class="head">
+<img src="fsv-nieder-olm-logo.jpg" class="logo" alt="FSV Nieder-Olm">
+<div><h1>Antrag Leistungsvergleich</h1><div class="sub">FSV Nieder-Olm - Angaben für den Turnierantrag</div></div>
+</div></header>
+
+<main>
+<section class="panel">
+<h2>Angaben zum Leistungsvergleich</h2>
+<div class="grid">
+<div><label for="altersklasse">Mannschaft / Altersklasse *</label>
+<select id="altersklasse" required>
+<option value="">Bitte auswählen</option>
+<option value="A">A-Junioren</option><option value="B">B-Junioren</option><option value="C">C-Junioren</option>
+<option value="D">D-Junioren</option><option value="E">E-Junioren</option><option value="F">F-Junioren</option><option value="G">G-Junioren</option>
+<option value="Bw">B-Juniorinnen</option><option value="Cw">C-Juniorinnen</option><option value="Dw">D-Juniorinnen</option>
+<option value="Ew">E-Juniorinnen</option><option value="Fw">F-Juniorinnen</option>
+</select></div>
+<div><label for="datum">Datum *</label><input id="datum" type="date" required></div>
+<div><label for="von">Uhrzeit von *</label><input id="von" type="time" required></div>
+<div><label for="bis">Uhrzeit bis *</label><input id="bis" type="time" required></div>
+<div style="grid-column:1/-1"><label for="ort">Spielort *</label>
+<select id="ort" required>
+<option value="Nieder-Olm, Kunstrasen an der IGS, Maler-Metten-Weg">Nieder-Olm, Kunstrasen an der IGS, Maler-Metten-Weg</option>
+<option value="Nieder-Olm, Kunstrasen Kleinfeld, Pariser Str. 155">Nieder-Olm, Kunstrasen Kleinfeld, Pariser Str. 155</option>
+<option value="Nieder-Olm, Rasen, Pariser Str. 155">Nieder-Olm, Rasen, Pariser Str. 155</option>
+</select></div>
+<div><label for="ansprechpartner">Ansprechpartner / Trainer *</label><input id="ansprechpartner" autocomplete="name" required></div>
+<div><label for="telefon">Telefon *</label><input id="telefon" type="tel" autocomplete="tel" required></div>
+</div>
+</section>
+
+<section class="panel">
+<h2>Teilnehmende Mannschaften</h2>
+<div class="hint" style="margin-bottom:10px">Bitte die teilnehmenden Vereine/Mannschaften eintragen. Maximal 18 Mannschaften.</div>
+<div id="teams"></div>
+<button type="button" class="secondary" onclick="addTeam()">+ Mannschaft hinzufügen</button>
+</section>
+
+<section class="panel">
+<button id="sendBtn" class="submit" onclick="submitApplication()">Turnierantrag erstellen</button>
+<div id="msg" class="msg"></div>
+</section>
+</main>
+<div class="version">Version 1.3</div>
+
+<script>
+const EMAILJS_PUBLIC_KEY="4gRqrmu7JPDzAYBFo";
+const EMAILJS_SERVICE_ID="service_wpky3om";
+/* In EmailJS bitte eine Vorlage mit genau dieser Template-ID anlegen. */
+const EMAILJS_TEMPLATE_ID="template_vsim3m6";
+const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
+const SUPABASE_KEY="sb_publishable_omPVDjNvHQ5SULxKhJQqUA_-rCJ0PL3";
+const STORAGE_BUCKET="turnierantraege";
+const RECIPIENT="ugur.altan@outlook.de";
+const PDF_TEMPLATE="Turnierantrag_Stand_Nov_2025.pdf";
+
+emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});
+
+const ageNames={
+ A:"A-Junioren",B:"B-Junioren",C:"C-Junioren",D:"D-Junioren",E:"E-Junioren",F:"F-Junioren",G:"G-Junioren",
+ Bw:"B-Juniorinnen",Cw:"C-Juniorinnen",Dw:"D-Juniorinnen",Ew:"E-Juniorinnen",Fw:"F-Juniorinnen"
+};
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+function showMsg(text,type){const el=document.getElementById("msg");el.textContent=text;el.className="msg "+type;}
+function deDate(v){if(!v)return"";const [y,m,d]=v.split("-");return `${d}.${m}.${y}`;}
+function todayDE(){return new Date().toLocaleDateString("de-DE");}
+
+function addTeam(value=""){
+ const box=document.getElementById("teams");
+ if(box.children.length>=18){alert("Maximal 18 Mannschaften sind möglich.");return;}
+ const row=document.createElement("div");row.className="team-row";
+ row.innerHTML=`<div class="team-no"></div><input class="team" placeholder="Verein / Mannschaft" value="${esc(value)}"><button type="button" class="remove" title="Entfernen">×</button>`;
+ row.querySelector(".remove").onclick=()=>{row.remove();renumberTeams();};
+ box.appendChild(row);renumberTeams();
+}
+function renumberTeams(){[...document.querySelectorAll(".team-row")].forEach((r,i)=>r.querySelector(".team-no").textContent=(i+1)+".");}
+addTeam("FSV Nieder-Olm");addTeam();
+
+function requireData(){
+ const ids=["altersklasse","datum","von","bis","ort","ansprechpartner","telefon"];
+ for(const id of ids){const e=document.getElementById(id);if(!e.value.trim()){e.focus();throw new Error("Bitte alle Pflichtfelder ausfüllen.");}}
+ const teams=[...document.querySelectorAll(".team")].map(x=>x.value.trim()).filter(Boolean);
+ if(!teams.length)throw new Error("Bitte mindestens eine teilnehmende Mannschaft eintragen.");
+ return teams;
+}
+
+async function makePdf(teams){
+ const bytes=await fetch(PDF_TEMPLATE).then(r=>{if(!r.ok)throw new Error("PDF-Vorlage konnte nicht geladen werden.");return r.arrayBuffer();});
+ const pdfDoc=await PDFLib.PDFDocument.load(bytes);
+ const form=pdfDoc.getForm();
+
+ const text=(name,value)=>{try{form.getTextField(name).setText(String(value??""));}catch(e){console.warn(name,e)}};
+ const check=name=>{try{form.getCheckBox(name).check();}catch(e){console.warn(name,e)}};
+ const select=(name,value)=>{try{form.getDropdown(name).select(value);}catch(e){console.warn(name,e)}};
+
+ // Feste FSV-Angaben
+ check("Vorsitzender des KJA");
+ check("Fußballturniers");
+ select("Fußballkreis","Mainz-Bingen");
+ text("Vereinsname","FSV Nieder-Olm");
+ text("Vereinsnummer","42110270");
+ text("Vereinsanschrift","FSV Nieder-Olm");
+ text("PLZ ORT","55268 Nieder-Olm, Pariser Str. 155");
+ check("Junioren / Juniorinnen");
+ check("ohneBande");
+ check("Zeit");
+ check("Turnierordnung");
+
+ // Variable Angaben
+ const age=document.getElementById("altersklasse").value;
+ check(age);
+ text("Datum",deDate(document.getElementById("datum").value));
+ text("von",document.getElementById("von").value);
+ text("bis",document.getElementById("bis").value);
+ text("Ort",document.getElementById("ort").value.trim());
+ text("Ansprechpartner",document.getElementById("ansprechpartner").value.trim());
+ text("Telefon",document.getElementById("telefon").value.trim());
+
+ teams.slice(0,18).forEach((team,i)=>text("M"+(i+1),team));
+
+ // Unterschrifts-/Datumszeile vorbereiten, aber keine Unterschrift simulieren
+ text("Ort, Datum","Nieder-Olm, "+todayDE());
+
+ form.flatten();
+ return await pdfDoc.save();
+}
+
+async function uploadPdf(bytes,filename){
+ const safeName=(crypto.randomUUID ? crypto.randomUUID() : Date.now()+"-"+Math.random().toString(36).slice(2))+"_"+filename.replace(/[^a-zA-Z0-9._-]+/g,"_");
+ const path=encodeURIComponent(safeName);
+ const res=await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`,{
+   method:"POST",
+   headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/pdf","x-upsert":"false"},
+   body:new Blob([bytes],{type:"application/pdf"})
+ });
+ if(!res.ok) throw new Error("PDF konnte nicht in Supabase gespeichert werden: "+await res.text());
+ return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+}
+async function saveApplication(data){
+ const res=await fetch(`${SUPABASE_URL}/rest/v1/turnierantraege`,{
+   method:"POST",
+   headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json","Prefer":"return=minimal"},
+   body:JSON.stringify(data)
+ });
+ if(!res.ok) throw new Error("Antrag konnte nicht gespeichert werden: "+await res.text());
+}
+function downloadPdf(bytes,filename){
+ const blob=new Blob([bytes],{type:"application/pdf"});const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+async function submitApplication(){
+ const btn=document.getElementById("sendBtn");btn.disabled=true;showMsg("Turnierantrag wird erstellt ...","ok");
+ try{
+   const teams=requireData();
+   const pdfBytes=await makePdf(teams);
+   const datum=deDate(document.getElementById("datum").value);
+   const age=ageNames[document.getElementById("altersklasse").value];
+   const filename=`Turnierantrag_${datum.replaceAll(".","-")}_${age}.pdf`;
+
+   showMsg("PDF erstellt. Antrag wird gespeichert ...","ok");
+   const pdfUrl=await uploadPdf(pdfBytes,filename);
+   const trainer=document.getElementById("ansprechpartner").value.trim();
+   const telefon=document.getElementById("telefon").value.trim();
+   const ort=document.getElementById("ort").value.trim();
+   const von=document.getElementById("von").value;
+   const bis=document.getElementById("bis").value;
+   await saveApplication({datum:document.getElementById("datum").value,uhrzeit_von:von,uhrzeit_bis:bis,ort,altersklasse:age,ansprechpartner:trainer,telefon,mannschaften:teams,pdf_url:pdfUrl});
+
+   showMsg("Antrag gespeichert. E-Mail wird versendet ...","ok");
+   const message=`Neuer Turnierantrag / Leistungsvergleich\n\nAltersklasse: ${age}\nDatum: ${datum}\nUhrzeit: ${von} bis ${bis}\nSpielort: ${ort}\n\nTrainer / Ansprechpartner: ${trainer}\nTelefon: ${telefon}\n\nTeilnehmende Mannschaften:\n${teams.join("\n")}\n\nTurnierantrag als PDF:\n${pdfUrl}`;
+   await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{
+     to_email:RECIPIENT,
+     reply_to:RECIPIENT,
+     subject:`Neuer Turnierantrag - ${age} - ${datum}`,
+     message,
+     trainer,telefon,datum,uhrzeit_von:von,uhrzeit_bis:bis,ort,altersklasse:age,mannschaften:teams.join(", "),pdf_url:pdfUrl
+   });
+
+   downloadPdf(pdfBytes,filename);
+   showMsg("Erfolgreich: Der Turnierantrag wurde erstellt, gespeichert und per E-Mail gemeldet. Eine PDF-Kopie wurde zusätzlich heruntergeladen.","ok");
+ }catch(err){
+   console.error(err);
+   showMsg("Nicht versendet: "+(err?.text||err?.message||String(err))+"\n\nFalls das PDF bereits erstellt wurde, prüfe bitte die EmailJS-Konfiguration gemäß README.","err");
+ }finally{btn.disabled=false;}
+}
+</script>
+</body>
+</html>
