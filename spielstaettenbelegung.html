@@ -63,14 +63,14 @@ input{width:100%}button{border:0;background:var(--black);color:#fff;font-weight:
 <div class="notice"><b>Belegungsregel:</b> Jede Buchung blockiert den jeweiligen Platz ab der Startzeit für 2 Stunden. Beispiel: Belegung um 11:00 Uhr → nächste Buchung ab 13:00 Uhr möglich.</div>
 </section>
 </main>
-<div class="version">Version 2.2</div>
+<div class="version">Version 2.3</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
 const SUPABASE_KEY="sb_publishable_omPVDjNvHQ5SULxKhJQqUA_-rCJ0PL3";
 const PITCHES=["Nieder-Olm Kleinfeld KR","Nieder-Olm KR","Nieder-Olm RA"];
 const DAY_START=8*60, DAY_END=22*60, BLOCK=120;
-const MAX_AGE_MS=2*60*1000;
+const MAX_AGE_MS=15*60*1000;
 const REFRESH_FUNCTION=`${SUPABASE_URL}/functions/v1/refresh-spielstaetten`;
 const dateEl=document.getElementById("date");
 
