@@ -282,6 +282,52 @@ button:hover,.submit:hover{transform:translateY(-1px)}
   .notice{display:none !important}
 }
 
+
+/* v2.12 – Belegungsbalken sauber innerhalb jeder Platz-Zeile */
+.pitch-row{
+  position:relative !important;
+  overflow:hidden !important;
+}
+.pitch-row .track{
+  position:relative !important;
+  height:100% !important;
+  min-height:100% !important;
+  overflow:hidden !important;
+}
+.booking{
+  top:10px !important;
+  bottom:10px !important;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:calc(100% - 20px) !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+}
+@media(max-width:560px){
+  .pitch-row{
+    overflow:hidden !important;
+  }
+  .pitch-row .track{
+    overflow:hidden !important;
+  }
+  .booking{
+    top:8px !important;
+    bottom:8px !important;
+    height:auto !important;
+    max-height:calc(100% - 16px) !important;
+    padding:8px 10px !important;
+    border-radius:10px !important;
+    overflow:hidden !important;
+  }
+  .booking .booking-time,
+  .booking .booking-title,
+  .booking .booking-sub{
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -311,7 +357,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 </div></div>
 </section>
 </main>
-<div class="version">Version 2.11</div>
+<div class="version">Version 2.12</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
