@@ -740,6 +740,12 @@ button:hover,.submit:hover{transform:translateY(-1px)}
   }
 }
 
+
+.booking.manual{
+  background:linear-gradient(135deg,#1677ff,#0754b8)!important;
+  border:2px solid #000!important;
+  box-shadow:0 5px 12px rgba(22,119,255,.28)!important;
+}
 </style>
 </head>
 <body>
@@ -762,14 +768,14 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 
 <section class="panel">
 <div class="panel-head"><div><h2 id="dayTitle">Tagesbelegung</h2><div style="color:#666;font-size:13px;margin-top:4px">Zeitraum 08:00–22:00 Uhr</div></div>
-<div class="legend"><span><i class="dot"></i> frei</span><span><i class="dot busy"></i> belegt</span></div></div>
+<div class="legend"><span><i class="dot"></i> frei</span><span><i class="dot busy"></i> DFBnet</span><span><i class="dot" style="background:#1677ff"></i> Fußballschule</span></div></div>
 <div class="schedule"><div class="schedule-inner">
 <div class="time-head"><div class="pitch-label">Spielstätte</div><div class="axis" id="axis"></div></div>
 <div id="rows"></div>
 </div></div>
 </section>
 </main>
-<div class="version">Version 2.20</div>
+<div class="version">Version 2.21</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
@@ -825,13 +831,13 @@ function render(bookings){
    const track=document.createElement("div");track.className="track";
    if(!list.length){track.innerHTML='<div class="empty">Keine Belegung eingetragen</div>'}
    for(const b of list){
-     const s=Math.max(DAY_START,b.start),e=Math.min(DAY_END,b.start+BLOCK);
+     const s=Math.max(DAY_START,b.start),e=Math.min(DAY_END,b.end??(b.start+BLOCK));
      if(e<=DAY_START||s>=DAY_END) continue;
-     const el=document.createElement("div");el.className="booking";
+     const el=document.createElement("div");el.className="booking"+(b.manual?" manual":"");
      el.style.left=((s-DAY_START)/(DAY_END-DAY_START)*100)+"%";
      el.style.width=((e-s)/(DAY_END-DAY_START)*100)+"%";
-     el.innerHTML=`<b>${esc(fmtMin(b.start).replace(" Uhr",""))}–${esc(fmtMin(b.start+BLOCK).replace(" Uhr",""))}</b><small>${esc(b.age||"Turnier")} · ${esc(b.trainer||"")}</small>`;
-     el.title=`${p} | ${fmtMin(b.start)} bis ${fmtMin(b.start+BLOCK)} | Liga: ${b.age||""} | ${b.trainer||""}${b.kennung?" | Spielkennung: "+b.kennung:""}`;
+     const end=b.end??(b.start+BLOCK); el.innerHTML=`<b>${esc(fmtMin(b.start).replace(" Uhr",""))}–${esc(fmtMin(end).replace(" Uhr",""))}</b><small>${esc(b.age||"Turnier")} · ${esc(b.trainer||"")}</small>`;
+     el.title=`${p} | ${fmtMin(b.start)} bis ${fmtMin(b.end??(b.start+BLOCK))} | ${b.manual?"Fußballschule":"Liga: "+(b.age||"")} | ${b.trainer||""}${b.kennung?" | Spielkennung: "+b.kennung:""}`;
      track.appendChild(el);
    }
    row.append(label,track);rows.appendChild(row);
@@ -843,6 +849,14 @@ async function fetchRows(d){
  if(!res.ok) throw new Error(await res.text());
  return await res.json();
 }
+
+async function fetchManualRows(d){
+ const url=`${SUPABASE_URL}/rest/v1/fussballschule_belegung?select=id,datum,uhrzeit_von,uhrzeit_bis,spielstaette,titel,notiz,created_at&datum=eq.${encodeURIComponent(d)}&order=uhrzeit_von.asc`;
+ const res=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}});
+ if(!res.ok) throw new Error(await res.text());
+ return await res.json();
+}
+
 function newestSync(data){
  const times=data.map(x=>Date.parse(x.synced_at)).filter(Number.isFinite);
  return times.length?Math.max(...times):0;
@@ -862,6 +876,7 @@ async function loadBookings(){
  try{
    const d=dateEl.value;
    let data=await fetchRows(d);
+   let manualData=await fetchManualRows(d);
 
    const toBookings=(rows)=>{
      const activeData=rows.filter(x=>!/abgesetzt|abgesagt|ausgefallen|spielausfall|nicht statt|cancel|cancell|absetz/i.test(x.status||""));
@@ -873,10 +888,18 @@ async function loadBookings(){
        kennung:x.kennung||""
      })).filter(x=>x.pitch);
    };
+   const manualBookings=()=>manualData.map(x=>({
+     pitch:mapPitch(x.spielstaette),
+     start:parseMin(x.uhrzeit_von),
+     end:parseMin(x.uhrzeit_bis),
+     age:x.titel||"Fußballschule",
+     trainer:x.notiz||"",
+     manual:true
+   })).filter(x=>x.pitch && x.end>x.start);
 
    // Sofort den vorhandenen Datenbestand anzeigen.
    // Während ein DFBnet-Sync läuft, bleibt dieser Kalender sichtbar.
-   let bookings=toBookings(data);
+   let bookings=[...toBookings(data),...manualBookings()];
    render(bookings);
 
    let stamp=newestSync(data);
@@ -897,7 +920,8 @@ async function loadBookings(){
            const nowSync=newestSync(freshData);
            if(nowSync && nowSync>before){
              data=freshData;
-             bookings=toBookings(data);
+             manualData=await fetchManualRows(d);
+             bookings=[...toBookings(data),...manualBookings()];
              stamp=nowSync;
              render(bookings);
              break;
@@ -905,7 +929,8 @@ async function loadBookings(){
          }
        }else if(trigger.fresh){
          data=await fetchRows(d);
-         bookings=toBookings(data);
+         manualData=await fetchManualRows(d);
+         bookings=[...toBookings(data),...manualBookings()];
          stamp=newestSync(data);
          render(bookings);
        }
