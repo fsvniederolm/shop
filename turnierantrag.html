@@ -127,6 +127,68 @@ input,select,textarea{
   }
 }
 
+
+/* v1.10 – einheitliche Formularfelder nach Vorbild "Spielort" */
+@media(max-width:700px){
+  .panel{
+    overflow:visible !important;
+  }
+
+  .grid{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) !important;
+    width:100% !important;
+    min-width:0 !important;
+  }
+
+  .field{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    overflow:hidden !important;
+  }
+
+  /* Alle normalen Felder exakt wie das funktionierende Spielort-Feld */
+  .field input:not([type="file"]),
+  .field select,
+  .field textarea{
+    display:block !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    height:58px !important;
+    min-height:58px !important;
+    padding:0 14px !important;
+    margin:0 !important;
+    border-radius:14px !important;
+    box-sizing:border-box !important;
+  }
+
+  .field textarea{
+    height:auto !important;
+    min-height:100px !important;
+    padding-top:12px !important;
+    padding-bottom:12px !important;
+  }
+
+  /* iOS Date/Time inputs können sonst intern über ihre CSS-Breite hinausragen. */
+  .field input[type="date"],
+  .field input[type="time"]{
+    -webkit-appearance:none !important;
+    appearance:none !important;
+    inline-size:100% !important;
+    min-inline-size:0 !important;
+    max-inline-size:100% !important;
+  }
+
+  .field input[type="file"]{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -182,7 +244,7 @@ input,select,textarea{
 <div id="msg" class="msg"></div>
 </section>
 </main>
-<div class="version">Version 1.9</div>
+<div class="version">Version 1.10</div>
 
 <script>
 const EMAILJS_PUBLIC_KEY="4gRqrmu7JPDzAYBFo";
