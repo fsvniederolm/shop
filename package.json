@@ -1,7 +1,7 @@
 {
   "name": "fsv-spielstaetten-sync",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.7.0",
   "type": "module",
   "scripts": {
     "sync": "node scripts/dfbnet-sync.mjs"
