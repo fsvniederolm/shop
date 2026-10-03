@@ -2,7 +2,7 @@ name: DFBnet Spielstätten Sync
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -17,21 +17,43 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
+      - name: Zeitfenster prüfen
+        id: zeitfenster
+        shell: bash
+        run: |
+          HOUR=$(TZ=Europe/Berlin date +%H)
+          MINUTE=$(TZ=Europe/Berlin date +%M)
+
+          # 06:00 bis 23:59 Uhr: jeder 5-Minuten-Lauf wird ausgeführt.
+          # 00:00 bis 05:59 Uhr: nur zur vollen Stunde.
+          if [ "$HOUR" -ge 6 ] || [ "$MINUTE" = "00" ]; then
+            echo "run_sync=true" >> "$GITHUB_OUTPUT"
+            echo "Sync wird ausgeführt: $(TZ=Europe/Berlin date)"
+          else
+            echo "run_sync=false" >> "$GITHUB_OUTPUT"
+            echo "Nachtzeit: dieser 5-Minuten-Lauf wird übersprungen."
+          fi
+
       - name: Repository laden
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
         uses: actions/checkout@v4
 
       - name: Node.js einrichten
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Abhängigkeiten installieren
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
         run: npm install
 
       - name: Chromium installieren
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
         run: npx playwright install --with-deps chromium
 
       - name: DFBnet mit Supabase synchronisieren
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
         run: npm run sync
         env:
           DFBNET_USERNAME: ${{ secrets.DFBNET_USERNAME }}
@@ -40,6 +62,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Fehler-Screenshot sichern
+        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
         if: failure()
         uses: actions/upload-artifact@v4
         with:
