@@ -611,6 +611,97 @@ button:hover,.submit:hover{transform:translateY(-1px)}
   .time-head>.pitch-label{z-index:60 !important}
 }
 
+
+/* v2.18 – finaler Datumsfeld-/Sticky-Fix */
+
+/* Das Datum erhält eine eigene volle Zeile und kann niemals breiter
+   als die Innenfläche der Toolbar werden. */
+.toolbar{
+  overflow:hidden !important;
+}
+.toolbar > .control{
+  flex:0 0 100% !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  padding:0 !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+}
+.toolbar > .control input[type="date"]{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+}
+
+/* Wichtig für position:sticky:
+   Die einzelnen Grid-Zeilen dürfen NICHT selbst overflow:hidden sein,
+   sonst werden die linken Labels zu eigenen Clipping-Containern und
+   können beim horizontalen Scrollen nicht kleben. */
+.schedule{
+  position:relative !important;
+  overflow-x:auto !important;
+  overflow-y:visible !important;
+  -webkit-overflow-scrolling:touch;
+}
+.schedule-inner{
+  position:relative !important;
+  overflow:visible !important;
+}
+.time-head,
+.pitch-row{
+  overflow:visible !important;
+}
+.pitch-row .track{
+  overflow:hidden !important;
+}
+
+/* Linke Spalte bleibt beim horizontalen Scrollen fest sichtbar. */
+.time-head > .pitch-label,
+.pitch-row > .pitch-label{
+  position:sticky !important;
+  position:-webkit-sticky !important;
+  left:0 !important;
+  background:#15191e !important;
+  color:#fff !important;
+  box-shadow:2px 0 0 rgba(255,255,255,.22) !important;
+}
+.time-head > .pitch-label{z-index:100 !important}
+.pitch-row > .pitch-label{z-index:90 !important}
+
+@media(max-width:760px){
+  .toolbar{
+    width:100% !important;
+    max-width:100% !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+    padding:12px !important;
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+  }
+  .toolbar > .control{
+    grid-column:1/-1 !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    overflow:hidden !important;
+  }
+  .toolbar > .control input[type="date"]{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    margin:0 !important;
+  }
+  .time-head,
+  .pitch-row{
+    overflow:visible !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -640,7 +731,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 </div></div>
 </section>
 </main>
-<div class="version">Version 2.17</div>
+<div class="version">Version 2.18</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
