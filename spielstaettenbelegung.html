@@ -239,6 +239,49 @@ button:hover,.submit:hover{transform:translateY(-1px)}
   }
 }
 
+
+/* v2.11 – echter Smartphone-Fix */
+@media(max-width:560px){
+  /* Kein Überlappen mehr: Inhalt beginnt klar unterhalb des Hero-Bereichs. */
+  .wrap{
+    margin-top:0 !important;
+    padding-top:12px !important;
+  }
+
+  /* Das Stadionfoto steckt im Hero, nicht im body:
+     Bildausschnitt nach oben verschieben, damit Tribüne/Stadionhaus sichtbar sind. */
+  .hero{
+    background-size:cover !important;
+    background-position:center 31% !important;
+    min-height:285px !important;
+  }
+  .hero-inner{
+    min-height:278px !important;
+  }
+
+  /* Datums-/Bedienfeld vollständig innerhalb seines Panels. */
+  .toolbar{
+    width:100% !important;
+    max-width:100% !important;
+    margin:0 0 12px 0 !important;
+    padding:12px !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+  .toolbar .control,
+  .toolbar .statusline{
+    grid-column:1/-1 !important;
+  }
+  .toolbar .control,
+  .toolbar input[type="date"]{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+  }
+
+  /* Unter dem Kalender keine zusätzliche Hinweisfläche mehr. */
+  .notice{display:none !important}
+}
+
 </style>
 </head>
 <body>
@@ -266,10 +309,9 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 <div class="time-head"><div class="pitch-label">Spielstätte</div><div class="axis" id="axis"></div></div>
 <div id="rows"></div>
 </div></div>
-<div class="notice"><b>Belegungsregel:</b> Jede Buchung blockiert den jeweiligen Platz ab der Startzeit für 2 Stunden. Beispiel: Belegung um 11:00 Uhr → nächste Buchung ab 13:00 Uhr möglich.</div>
 </section>
 </main>
-<div class="version">Version 2.10</div>
+<div class="version">Version 2.11</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
