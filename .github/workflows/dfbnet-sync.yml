@@ -1,0 +1,50 @@
+name: DFBnet Spielstätten Sync
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dfbnet-spielstaetten-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Repository laden
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Abhängigkeiten installieren
+        run: npm install
+
+      - name: Chromium installieren
+        run: npx playwright install --with-deps chromium
+
+      - name: DFBnet mit Supabase synchronisieren
+        run: npm run sync
+        env:
+          DFBNET_USERNAME: ${{ secrets.DFBNET_USERNAME }}
+          DFBNET_PASSWORD: ${{ secrets.DFBNET_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Fehler-Screenshot sichern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dfbnet-sync-error
+          path: dfbnet-sync-error.png
+          if-no-files-found: ignore
+          retention-days: 3
