@@ -1,5 +1,4 @@
 import { chromium } from "playwright";
-import { createClient } from "@supabase/supabase-js";
 
 const required = ["DFBNET_USERNAME","DFBNET_PASSWORD","SUPABASE_URL","SUPABASE_SERVICE_ROLE_KEY"];
 for (const k of required) if (!process.env[k]) throw new Error(`GitHub Secret ${k} fehlt.`);
@@ -7,9 +6,13 @@ for (const k of required) if (!process.env[k]) throw new Error(`GitHub Secret ${
 const USER = process.env.DFBNET_USERNAME;
 const PASS = process.env.DFBNET_PASSWORD;
 const LOGIN_URL = process.env.DFBNET_LOGIN_URL || "https://www.dfbnet.org/spielplus/authenticate.do";
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession:false, autoRefreshToken:false }
-});
+const SB_URL = process.env.SUPABASE_URL.replace(/\/$/,"");
+const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const sbHeaders = {
+  apikey: SB_KEY,
+  Authorization: `Bearer ${SB_KEY}`,
+  "Content-Type": "application/json"
+};
 
 const PLACES = [
   {name:"Nieder-Olm Kleinfeld KR", number:"4200110275"},
@@ -127,18 +130,18 @@ async function extractRows(page, place) {
 }
 
 async function syncPlace(place, games) {
-  // Nur diese Spielstätte ersetzen. Dadurch verschwinden verlegte/gelöschte DFBnet-Spiele
-  // beim nächsten Lauf automatisch aus unserer DB.
-  const { error: delError } = await supabase
-    .from("spielstaetten_belegung")
-    .delete()
-    .eq("source","dfbnet")
-    .eq("spielstaette_nummer",place.number);
-  if (delError) throw delError;
+  // Erst nach erfolgreichem Auslesen ersetzen. Bei Scraperfehlern bleiben alte Daten erhalten.
+  const delUrl = `${SB_URL}/rest/v1/spielstaetten_belegung?source=eq.dfbnet&spielstaette_nummer=eq.${encodeURIComponent(place.number)}`;
+  const del = await fetch(delUrl, {method:"DELETE", headers:sbHeaders});
+  if (!del.ok) throw new Error(`Supabase DELETE ${del.status}: ${await del.text()}`);
 
   if (games.length) {
-    const { error } = await supabase.from("spielstaetten_belegung").insert(games);
-    if (error) throw error;
+    const ins = await fetch(`${SB_URL}/rest/v1/spielstaetten_belegung`, {
+      method:"POST",
+      headers:{...sbHeaders, Prefer:"return=minimal"},
+      body:JSON.stringify(games)
+    });
+    if (!ins.ok) throw new Error(`Supabase INSERT ${ins.status}: ${await ins.text()}`);
   }
   console.log(`${place.name}: ${games.length} Spiele synchronisiert`);
 }
