@@ -105,49 +105,33 @@ async function openVenue(page, place) {
 }
 
 async function extractRows(page, place) {
-  // Wir suchen Tabellenzeilen, die wie DFBnet-Spiele aussehen:
-  // Datum + zwei Uhrzeiten + Spielkennung (mind. 7 Ziffern).
-  const rows = page.locator("tr");
-  const n = await rows.count();
-  const result = [];
-
-  for (let i=0;i<n;i++) {
-    const row = rows.nth(i);
-    const cells = row.locator("td");
-    const c = await cells.count();
-    if (c < 7) continue;
-
-    const vals = [];
-    for (let j=0;j<c;j++) vals.push(norm(await cells.nth(j).innerText().catch(()=>'')));
-    const joined = vals.join(" | ");
-    const date = deToIso(joined);
-    const times = [...joined.matchAll(/\b(\d{1,2}:\d{2})\b/g)].map(m=>m[1]);
-    const kennungMatch = joined.match(/\b(\d{7,10})\b/);
-    if (!date || times.length < 1 || !kennungMatch) continue;
-
-    // Aus dem Screenshot: nach WT folgen Kennung, Liga, Heim, Gast.
-    // Statt feste td-Indizes zu erzwingen, suchen wir Kennung und nehmen die Folgefelder.
-    const kIndex = vals.findIndex(v => v.includes(kennungMatch[1]));
-    const liga = kIndex >= 0 ? vals[kIndex+1] || null : null;
-    const heim = kIndex >= 0 ? vals[kIndex+2] || null : null;
-    const gast = kIndex >= 0 ? vals[kIndex+3] || null : null;
-
-    result.push({
-      source:"dfbnet",
-      spielstaette:place.name,
-      spielstaette_nummer:place.number,
-      datum:date,
-      anstoss:hhmm(times[0]),
-      ende_dfbnet:times[1] ? hhmm(times[1]) : null,
-      kennung:kennungMatch[1],
-      liga, heim, gast,
-      status: vals.at(-1) || null,
-      synced_at:new Date().toISOString()
-    });
-  }
-
-  // Kennung pro Spiel eindeutig halten.
-  return [...new Map(result.map(x=>[`${x.spielstaette_nummer}:${x.kennung}`,x])).values()];
+  await page.waitForTimeout(800);
+  const games = await page.locator("table tbody tr").evaluateAll((rows, place) => {
+    const clean = v => (v || "").replace(/\s+/g, " ").trim();
+    const out = [];
+    for (const tr of rows) {
+      const cells = [...tr.querySelectorAll("td")].map(td => clean(td.innerText));
+      const dateIdx = cells.findIndex(v => /^\d{2}\.\d{2}\.\d{4}$/.test(v));
+      if (dateIdx < 0) continue;
+      const start = cells[dateIdx+1] || "", end = cells[dateIdx+2] || "";
+      if (!/^\d{1,2}:\d{2}$/.test(start)) continue;
+      let k=-1;
+      for(let i=dateIdx+3;i<cells.length;i++) if(/^\d{7,10}$/.test(cells[i])) { k=i; break; }
+      if(k<0) continue;
+      const [dd,mm,yyyy]=cells[dateIdx].split(".");
+      out.push({
+        source:"dfbnet", spielstaette:place.name, spielstaette_nummer:place.number,
+        datum:`${yyyy}-${mm}-${dd}`, anstoss:`${start}:00`,
+        ende_dfbnet:/^\d{1,2}:\d{2}$/.test(end)?`${end}:00`:null,
+        kennung:cells[k], liga:cells[k+1]||null, heim:cells[k+2]||null,
+        gast:cells[k+3]||null, status:cells[cells.length-1]||null,
+        synced_at:new Date().toISOString()
+      });
+    }
+    return out;
+  }, place);
+  console.log(`${place.name}: ${games.length} Tabellenzeilen erkannt.`);
+  return games;
 }
 
 async function syncPlace(place, games) {
