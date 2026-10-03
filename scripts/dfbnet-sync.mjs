@@ -122,6 +122,25 @@ async function extractRows(page, place) {
         return clean(input && input.value ? input.value : td.innerText);
       });
 
+      // Status in DFBnet is häufig nur als Symbol dargestellt.
+      // Deshalb neben Text auch title/alt/src/class der Status-Zelle auswerten.
+      const statusTd = tds[tds.length - 1];
+      const statusParts = [
+        statusTd?.innerText,
+        statusTd?.getAttribute("title"),
+        statusTd?.getAttribute("aria-label"),
+        ...[...(statusTd?.querySelectorAll("[title],[alt],img") || [])].flatMap(el => [
+          el.getAttribute("title"),
+          el.getAttribute("alt"),
+          el.getAttribute("aria-label"),
+          el.getAttribute("src"),
+          el.className
+        ])
+      ].map(clean).filter(Boolean);
+      const statusText = statusParts.join(" | ");
+      const isCancelled = /abgesetzt|abgesagt|ausgefallen|spielausfall|nicht statt|cancel|cancell|absetz/i.test(statusText);
+      if (isCancelled) continue;
+
       const dateIdx = cells.findIndex(v => /^\d{2}\.\d{2}\.\d{4}$/.test(v));
       if (dateIdx < 0) continue;
 
@@ -155,7 +174,7 @@ async function extractRows(page, place) {
         liga:cells[k+1]||null,
         heim:cells[k+2]||null,
         gast:cells[k+3]||null,
-        status:cells[cells.length-1]||null,
+        status:statusText||cells[cells.length-1]||null,
         synced_at:new Date().toISOString()
       });
     }
