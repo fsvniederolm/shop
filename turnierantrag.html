@@ -284,6 +284,55 @@ input,select,textarea{
   }
 }
 
+
+/* v1.13 – iPhone-Fix an den TATSÄCHLICHEN Datum-/Zeit-Containern */
+@media(max-width:700px){
+  /* Die drei Felder liegen direkt in .grid > div, nicht in .field. */
+  .grid > div{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+  }
+
+  #datum, #von, #bis{
+    -webkit-appearance:none !important;
+    appearance:none !important;
+    display:block !important;
+    position:static !important;
+    width:100% !important;
+    inline-size:100% !important;
+    max-width:100% !important;
+    max-inline-size:100% !important;
+    min-width:0 !important;
+    min-inline-size:0 !important;
+    height:58px !important;
+    min-height:58px !important;
+    max-height:58px !important;
+    margin:0 !important;
+    padding:0 14px !important;
+    border-radius:14px !important;
+    box-sizing:border-box !important;
+    font:inherit !important;
+  }
+
+  /* Alle direkten Grid-Felder bekommen dieselbe Geometrie
+     wie Mannschaft / Altersklasse. */
+  .grid > div > input,
+  .grid > div > select{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    height:58px !important;
+    min-height:58px !important;
+    max-height:58px !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+    box-sizing:border-box !important;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -313,6 +362,8 @@ input,select,textarea{
 <option value="Nieder-Olm, Kunstrasen an der IGS, Maler-Metten-Weg">Nieder-Olm, Kunstrasen an der IGS, Maler-Metten-Weg</option>
 <option value="Nieder-Olm, Kunstrasen Kleinfeld, Pariser Str. 155">Nieder-Olm, Kunstrasen Kleinfeld, Pariser Str. 155</option>
 <option value="Nieder-Olm, Rasen, Pariser Str. 155">Nieder-Olm, Rasen, Pariser Str. 155</option>
+
+<option value="Nieder-Olm, Heinz Kerz Halle, Maria-Montessori Straße 8">Nieder-Olm, Heinz Kerz Halle, Maria-Montessori Straße 8</option>
 </select></div>
 <div><label for="ansprechpartner">Ansprechpartner / Trainer *</label><input id="ansprechpartner" autocomplete="name" required></div>
 <div><label for="telefon">Telefon *</label><input id="telefon" type="tel" autocomplete="tel" required></div>
@@ -339,7 +390,7 @@ input,select,textarea{
 <div id="msg" class="msg"></div>
 </section>
 </main>
-<div class="version">Version 1.12</div>
+<div class="version">Version 1.14</div>
 
 <script>
 const EMAILJS_PUBLIC_KEY="4gRqrmu7JPDzAYBFo";
