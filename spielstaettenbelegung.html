@@ -702,6 +702,44 @@ button:hover,.submit:hover{transform:translateY(-1px)}
   }
 }
 
+
+/* v2.19 – Datumsfeld mit garantiertem rechten Innenabstand */
+.toolbar > .control{
+  width:auto !important;
+  max-width:none !important;
+  margin:0 12px 0 0 !important;
+  padding:0 !important;
+  box-sizing:border-box !important;
+  overflow:visible !important;
+}
+.toolbar > .control input[type="date"]{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+}
+
+@media(max-width:760px){
+  .toolbar{
+    padding:12px !important;
+    box-sizing:border-box !important;
+  }
+  .toolbar > .control{
+    grid-column:1/-1 !important;
+    width:auto !important;
+    max-width:none !important;
+    margin-left:0 !important;
+    margin-right:12px !important;
+    overflow:visible !important;
+  }
+  .toolbar > .control input[type="date"]{
+    width:100% !important;
+    max-width:100% !important;
+    box-sizing:border-box !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -731,7 +769,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 </div></div>
 </section>
 </main>
-<div class="version">Version 2.18</div>
+<div class="version">Version 2.19</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
