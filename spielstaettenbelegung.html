@@ -556,6 +556,61 @@ button:hover,.submit:hover{transform:translateY(-1px)}
   }
 }
 
+
+/* v2.17 – Datumsfeld rechts vollständig + Spielstätten-Spalte sticky */
+.toolbar{
+  overflow:visible !important;
+}
+.toolbar .control{
+  overflow:visible !important;
+  padding-right:0 !important;
+}
+.toolbar input[type="date"]{
+  width:calc(100% - 2px) !important;
+  max-width:calc(100% - 2px) !important;
+  margin-right:2px !important;
+  box-sizing:border-box !important;
+}
+
+/* Linke Spielstätten-Spalte beim horizontalen Scrollen festhalten */
+.time-head>.pitch-label,
+.pitch-row>.pitch-label{
+  position:sticky !important;
+  left:0 !important;
+  z-index:50 !important;
+  background:#15191e !important;
+  box-shadow:2px 0 0 rgba(255,255,255,.20) !important;
+}
+.time-head>.pitch-label{
+  z-index:60 !important;
+}
+.schedule{
+  position:relative !important;
+}
+
+@media(max-width:560px){
+  .toolbar{
+    overflow:visible !important;
+  }
+  .toolbar .control{
+    overflow:visible !important;
+    padding-right:0 !important;
+  }
+  .toolbar input[type="date"]{
+    width:calc(100% - 4px) !important;
+    max-width:calc(100% - 4px) !important;
+    margin-right:4px !important;
+  }
+  .time-head>.pitch-label,
+  .pitch-row>.pitch-label{
+    position:sticky !important;
+    left:0 !important;
+    z-index:50 !important;
+    background:#15191e !important;
+  }
+  .time-head>.pitch-label{z-index:60 !important}
+}
+
 </style>
 </head>
 <body>
@@ -585,7 +640,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 </div></div>
 </section>
 </main>
-<div class="version">Version 2.16</div>
+<div class="version">Version 2.17</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
