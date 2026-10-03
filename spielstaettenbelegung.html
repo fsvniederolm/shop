@@ -33,6 +33,53 @@ input{width:100%}button{border:0;background:var(--black);color:#fff;font-weight:
 .version{position:fixed;right:10px;bottom:8px;font-size:11px;color:#777;background:rgba(255,255,255,.9);border:1px solid #ddd;border-radius:999px;padding:4px 8px;z-index:20}
 @media(max-width:900px){.hero{min-height:260px}.hero-inner{min-height:253px}.hero h1{font-size:31px}.logo{width:84px;height:84px}.cards{grid-template-columns:1fr}.wrap{margin-top:-30px}.statusline{width:100%;margin-left:0}.panel-head{align-items:flex-start;flex-direction:column}}
 @media(max-width:560px){.brand{align-items:flex-start}.hero h1{font-size:26px}.hero p{font-size:14px}.logo{width:70px;height:70px;border-radius:17px}.toolbar button{flex:1}.control{width:100%}}
+
+/* v2.4 Smartphone-Kompaktansicht */
+@media(max-width:560px){
+  body{font-size:13px}
+  .hero{min-height:176px;border-bottom-width:4px}
+  .hero-inner{min-height:172px;padding:18px 12px;align-items:flex-start}
+  .brand{gap:10px;align-items:center}
+  .logo{width:56px;height:56px;border-radius:14px}
+  .eyebrow{font-size:9px;letter-spacing:.12em}
+  .hero h1{font-size:23px;margin:3px 0 3px}
+  .hero p{font-size:12px;line-height:1.25}
+  .wrap{padding:0 8px 18px;margin-top:-20px}
+  .toolbar,.panel,.pitch-card{border-radius:13px}
+  .toolbar{padding:10px;gap:7px}
+  .control{width:100%}
+  .control label{font-size:9px}
+  .control input{padding:8px 9px;font-size:13px}
+  .toolbar button{padding:9px 7px;font-size:12px;min-width:0}
+  .statusline{font-size:10px;text-align:center}
+  .cards{gap:7px;margin:9px 0}
+  .pitch-card{padding:10px 12px}
+  .pitch-name{font-size:14px}
+  .next-label{font-size:8px;margin-top:6px}
+  .next-time{font-size:20px;margin-top:1px}
+  .panel{padding:10px}
+  .panel-head{gap:4px;margin-bottom:8px}
+  .panel h2{font-size:17px}
+  .sub{font-size:10px}
+  .legend{font-size:9px}
+  .timeline{border-radius:10px}
+  .time-head,.pitch-row{grid-template-columns:105px 1fr}
+  .pitch-label{padding:8px 7px;font-size:11px;line-height:1.15}
+  .axis{height:34px}
+  .tick{font-size:8px;padding:12px 0 0 3px}
+  .track{height:64px}
+  .booking{font-size:9px;line-height:1.15;padding:5px 6px;border-radius:7px}
+  .rule{font-size:9px;line-height:1.3;padding:8px 9px;margin-top:8px}
+}
+@media(max-width:380px){
+  .hero h1{font-size:21px}
+  .logo{width:50px;height:50px}
+  .toolbar{padding:8px}
+  .toolbar button{font-size:11px;padding:8px 5px}
+  .time-head,.pitch-row{grid-template-columns:92px 1fr}
+  .pitch-label{font-size:10px;padding:7px 5px}
+}
+
 </style>
 </head>
 <body>
@@ -63,7 +110,7 @@ input{width:100%}button{border:0;background:var(--black);color:#fff;font-weight:
 <div class="notice"><b>Belegungsregel:</b> Jede Buchung blockiert den jeweiligen Platz ab der Startzeit für 2 Stunden. Beispiel: Belegung um 11:00 Uhr → nächste Buchung ab 13:00 Uhr möglich.</div>
 </section>
 </main>
-<div class="version">Version 2.3</div>
+<div class="version">Version 2.4</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
