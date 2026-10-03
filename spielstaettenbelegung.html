@@ -328,6 +328,142 @@ button:hover,.submit:hover{transform:translateY(-1px)}
   }
 }
 
+
+/* v2.13 – mehr Zeilenhöhe + klar getrennte rote Belegungsblöcke */
+@media(max-width:560px){
+  /* Platzzeilen wieder höher, damit Mannschaft/Liga im Balken lesbar bleiben. */
+  .pitch-row{
+    min-height:118px !important;
+    height:118px !important;
+  }
+  .pitch-row .track{
+    min-height:118px !important;
+    height:118px !important;
+  }
+
+  /* Balken füllen die Zeile sinnvoll aus, bleiben aber klar getrennt. */
+  .booking{
+    top:7px !important;
+    bottom:7px !important;
+    height:auto !important;
+    max-height:none !important;
+    padding:9px 10px !important;
+    border:2px solid #000 !important;
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+  }
+
+  /* Text wieder mehrzeilig anzeigen statt alles mit ... abzuschneiden. */
+  .booking .booking-time,
+  .booking .booking-title,
+  .booking .booking-sub{
+    white-space:normal !important;
+    overflow:visible !important;
+    text-overflow:clip !important;
+    line-height:1.18 !important;
+  }
+}
+/* Schwarzer Rand auch auf Tablet/Desktop. */
+.booking{
+  border:2px solid #000 !important;
+}
+
+
+/* v2.14 – identische Zeilenhöhe für ALLE drei Spielstätten */
+@media(max-width:560px){
+  .schedule .pitch-row,
+  .schedule [class*="pitch-row"]{
+    height:118px !important;
+    min-height:118px !important;
+    max-height:118px !important;
+  }
+  .schedule .pitch-row > .pitch-label{
+    height:118px !important;
+    min-height:118px !important;
+    box-sizing:border-box !important;
+    display:flex !important;
+    align-items:center !important;
+  }
+  .schedule .pitch-row > .track,
+  .schedule .pitch-row .track{
+    height:118px !important;
+    min-height:118px !important;
+    max-height:118px !important;
+    box-sizing:border-box !important;
+  }
+  .schedule .booking{
+    top:7px !important;
+    bottom:7px !important;
+    height:104px !important;
+    max-height:104px !important;
+    min-height:104px !important;
+    border:2px solid #000 !important;
+    box-sizing:border-box !important;
+    padding:9px 10px !important;
+  }
+}
+
+
+/* v2.15 – alle Belegungsbalken zeigen Uhrzeit + Mannschaft/Liga */
+.pitch-row{
+  height:86px !important;
+  min-height:86px !important;
+}
+.pitch-row>.pitch-label,
+.pitch-row>.track{
+  height:86px !important;
+  min-height:86px !important;
+  box-sizing:border-box !important;
+}
+.booking{
+  top:8px !important;
+  bottom:auto !important;
+  height:70px !important;
+  min-height:70px !important;
+  max-height:70px !important;
+  padding:8px 10px !important;
+  border:2px solid #000 !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+}
+.booking b{
+  display:block !important;
+  line-height:1.15 !important;
+}
+.booking small{
+  display:block !important;
+  margin-top:4px !important;
+  line-height:1.18 !important;
+  white-space:normal !important;
+  overflow:hidden !important;
+  text-overflow:clip !important;
+  max-height:2.36em !important;
+}
+
+@media(max-width:560px){
+  .schedule .pitch-row,
+  .schedule [class*="pitch-row"],
+  .schedule .pitch-row>.pitch-label,
+  .schedule .pitch-row>.track{
+    height:118px !important;
+    min-height:118px !important;
+    max-height:118px !important;
+  }
+  .schedule .booking{
+    top:7px !important;
+    bottom:auto !important;
+    height:104px !important;
+    min-height:104px !important;
+    max-height:104px !important;
+    padding:9px 10px !important;
+    border:2px solid #000 !important;
+  }
+  .schedule .booking small{
+    white-space:normal !important;
+    max-height:3.54em !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -357,7 +493,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 </div></div>
 </section>
 </main>
-<div class="version">Version 2.12</div>
+<div class="version">Version 2.15</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
