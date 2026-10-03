@@ -105,31 +105,63 @@ async function openVenue(page, place) {
 }
 
 async function extractRows(page, place) {
-  await page.waitForTimeout(800);
-  const games = await page.locator("table tbody tr").evaluateAll((rows, place) => {
+  await page.waitForTimeout(1000);
+
+  const games = await page.locator("tr").evaluateAll((rows, place) => {
     const clean = v => (v || "").replace(/\s+/g, " ").trim();
     const out = [];
+
     for (const tr of rows) {
-      const cells = [...tr.querySelectorAll("td")].map(td => clean(td.innerText));
+      const tds = [...tr.querySelectorAll("td")];
+      if (!tds.length) continue;
+
+      // DFBnet zeigt Datum und teilweise Uhrzeit in INPUT-Feldern.
+      // innerText allein liefert deshalb dort leere Werte.
+      const cells = tds.map(td => {
+        const input = td.querySelector("input");
+        return clean(input && input.value ? input.value : td.innerText);
+      });
+
       const dateIdx = cells.findIndex(v => /^\d{2}\.\d{2}\.\d{4}$/.test(v));
       if (dateIdx < 0) continue;
-      const start = cells[dateIdx+1] || "", end = cells[dateIdx+2] || "";
-      if (!/^\d{1,2}:\d{2}$/.test(start)) continue;
+
+      let startIdx = -1;
+      for (let i=dateIdx+1; i<cells.length; i++) {
+        if (/^\d{1,2}:\d{2}$/.test(cells[i])) { startIdx=i; break; }
+      }
+      if (startIdx < 0) continue;
+
+      const start = cells[startIdx];
+      let end = null;
+      for (let i=startIdx+1; i<Math.min(cells.length,startIdx+4); i++) {
+        if (/^\d{1,2}:\d{2}$/.test(cells[i])) { end=cells[i]; break; }
+      }
+
       let k=-1;
-      for(let i=dateIdx+3;i<cells.length;i++) if(/^\d{7,10}$/.test(cells[i])) { k=i; break; }
+      for(let i=startIdx+1;i<cells.length;i++) {
+        if(/^\d{7,10}$/.test(cells[i])) { k=i; break; }
+      }
       if(k<0) continue;
+
       const [dd,mm,yyyy]=cells[dateIdx].split(".");
       out.push({
-        source:"dfbnet", spielstaette:place.name, spielstaette_nummer:place.number,
-        datum:`${yyyy}-${mm}-${dd}`, anstoss:`${start}:00`,
-        ende_dfbnet:/^\d{1,2}:\d{2}$/.test(end)?`${end}:00`:null,
-        kennung:cells[k], liga:cells[k+1]||null, heim:cells[k+2]||null,
-        gast:cells[k+3]||null, status:cells[cells.length-1]||null,
+        source:"dfbnet",
+        spielstaette:place.name,
+        spielstaette_nummer:place.number,
+        datum:`${yyyy}-${mm}-${dd}`,
+        anstoss:`${start}:00`,
+        ende_dfbnet:end ? `${end}:00` : null,
+        kennung:cells[k],
+        liga:cells[k+1]||null,
+        heim:cells[k+2]||null,
+        gast:cells[k+3]||null,
+        status:cells[cells.length-1]||null,
         synced_at:new Date().toISOString()
       });
     }
     return out;
   }, place);
+
   console.log(`${place.name}: ${games.length} Tabellenzeilen erkannt.`);
   return games;
 }
