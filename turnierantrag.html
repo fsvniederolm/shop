@@ -76,6 +76,57 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 .msg.ok{background:rgba(24,130,72,.22) !important;color:#bff4d2 !important}
 .msg.err{background:rgba(227,6,19,.18) !important;color:#ffc3c7 !important}
 
+
+/* v1.9 – Smartphone: Formularfelder bleiben vollständig im Panel */
+*{box-sizing:border-box}
+.panel,.card,form,.grid,.field{min-width:0}
+input,select,textarea{
+  display:block;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+@media(max-width:700px){
+  .wrap{
+    width:100% !important;
+    max-width:100% !important;
+    padding-left:14px !important;
+    padding-right:14px !important;
+    box-sizing:border-box !important;
+  }
+  .panel,.card{
+    width:100% !important;
+    max-width:100% !important;
+    padding-left:18px !important;
+    padding-right:18px !important;
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+  }
+  form,.grid,.field{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+  }
+  .grid{
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+  input[type="date"],
+  input[type="time"],
+  input[type="text"],
+  input[type="tel"],
+  input[type="number"],
+  select,textarea{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+    box-sizing:border-box !important;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -131,7 +182,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 <div id="msg" class="msg"></div>
 </section>
 </main>
-<div class="version">Version 1.8</div>
+<div class="version">Version 1.9</div>
 
 <script>
 const EMAILJS_PUBLIC_KEY="4gRqrmu7JPDzAYBFo";
