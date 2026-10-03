@@ -80,6 +80,13 @@ input{width:100%}button{border:0;background:var(--black);color:#fff;font-weight:
   .pitch-label{font-size:10px;padding:7px 5px}
 }
 
+
+/* v2.7: Uhrzeiten oben und Spielstätten links beim Scrollen fixieren */
+.schedule{position:relative}
+.time-head{position:sticky;top:0;z-index:30}
+.time-head>.pitch-label{position:sticky;left:0;z-index:40;background:#fff}
+.pitch-row>.pitch-label{position:sticky;left:0;z-index:20;background:#fff;box-shadow:2px 0 0 rgba(0,0,0,.06)}
+
 </style>
 </head>
 <body>
@@ -109,7 +116,7 @@ input{width:100%}button{border:0;background:var(--black);color:#fff;font-weight:
 <div class="notice"><b>Belegungsregel:</b> Jede Buchung blockiert den jeweiligen Platz ab der Startzeit für 2 Stunden. Beispiel: Belegung um 11:00 Uhr → nächste Buchung ab 13:00 Uhr möglich.</div>
 </section>
 </main>
-<div class="version">Version 2.6</div>
+<div class="version">Version 2.7</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
@@ -197,38 +204,67 @@ async function requestFreshSync(){
  return await res.json();
 }
 async function loadBookings(){
- const status=document.getElementById("status");status.textContent="Prüfe Datenstand …";
+ const status=document.getElementById("status");
+ status.textContent="Prüfe Datenstand …";
  try{
    const d=dateEl.value;
    let data=await fetchRows(d);
-   const last=newestSync(data);
-   const stale=!last || Date.now()-last>MAX_AGE_MS;
 
+   const toBookings=(rows)=>{
+     const activeData=rows.filter(x=>!/abgesetzt|abgesagt|ausgefallen|spielausfall|nicht statt|cancel|cancell|absetz/i.test(x.status||""));
+     return activeData.map(x=>({
+       pitch:mapPitch(x.spielstaette),
+       start:parseMin(x.anstoss),
+       age:x.liga||"Liga nicht angegeben",
+       trainer:[x.heim,x.gast].filter(Boolean).join(" – "),
+       kennung:x.kennung||""
+     })).filter(x=>x.pitch);
+   };
+
+   // Sofort den vorhandenen Datenbestand anzeigen.
+   // Während ein DFBnet-Sync läuft, bleibt dieser Kalender sichtbar.
+   let bookings=toBookings(data);
+   render(bookings);
+
+   let stamp=newestSync(data);
+   const stampText=()=>stamp
+     ? `${bookings.length} Belegung${bookings.length===1?"":"en"} · Datenstand ${new Date(stamp).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})} Uhr`
+     : `${bookings.length} Belegung${bookings.length===1?"":"en"} geladen · Datenstand unbekannt`;
+
+   const stale=!stamp || Date.now()-stamp>MAX_AGE_MS;
    if(stale){
-     status.textContent="Daten werden gerade mit DFBnet aktualisiert …";
+     status.textContent=stampText()+" · Aktualisierung läuft …";
      try{
        const trigger=await requestFreshSync();
        if(trigger.triggered){
-         const before=last;
+         const before=stamp;
          for(let i=0;i<18;i++){
            await new Promise(r=>setTimeout(r,5000));
-           data=await fetchRows(d);
-           const nowSync=newestSync(data);
-           if(nowSync && nowSync>before){break}
+           const freshData=await fetchRows(d);
+           const nowSync=newestSync(freshData);
+           if(nowSync && nowSync>before){
+             data=freshData;
+             bookings=toBookings(data);
+             stamp=nowSync;
+             render(bookings);
+             break;
+           }
          }
+       }else if(trigger.fresh){
+         data=await fetchRows(d);
+         bookings=toBookings(data);
+         stamp=newestSync(data);
+         render(bookings);
        }
-     }catch(syncErr){ console.warn("Live-Aktualisierung nicht möglich:",syncErr); }
+     }catch(syncErr){
+       console.warn("Live-Aktualisierung nicht möglich:",syncErr);
+     }
    }
 
-   const activeData=data.filter(x=>!/abgesetzt|abgesagt|ausgefallen|spielausfall|nicht statt|cancel|cancell|absetz/i.test(x.status||""));
-   const bookings=activeData.map(x=>({pitch:mapPitch(x.spielstaette),start:parseMin(x.anstoss),age:x.liga||"Liga nicht angegeben",trainer:[x.heim,x.gast].filter(Boolean).join(" – "),kennung:x.kennung||""})).filter(x=>x.pitch);
-   render(bookings);
-   const stamp=newestSync(data);
-   status.textContent=stamp
-     ? `${bookings.length} Belegung${bookings.length===1?"":"en"} · Datenstand ${new Date(stamp).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})} Uhr`
-     : `${bookings.length} Belegung${bookings.length===1?"":"en"} geladen · Datenstand unbekannt`;
+   status.textContent=stampText();
  }catch(e){
-   console.error(e);render([]);status.textContent="Belegung konnte nicht geladen werden.";
+   console.error(e);
+   status.textContent="Belegung konnte nicht geladen werden.";
  }
 }
 renderAxis();dateEl.value=isoLocal(new Date());dateEl.addEventListener("change",loadBookings);loadBookings();
