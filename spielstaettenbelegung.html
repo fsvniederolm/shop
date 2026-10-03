@@ -191,6 +191,54 @@ button:hover,.submit:hover{transform:translateY(-1px)}
   .toolbar button{font-size:10.5px !important}
 }
 
+
+/* v2.10 Smartphone-Korrektur */
+@media(max-width:560px){
+  /* Auf dem Hochformat-Handy soll die obere Stadionkante mit Vereinsheim
+     sichtbar bleiben, statt den Bildausschnitt auf die Rasenmitte zu zoomen. */
+  body{
+    background-size:100% auto !important;
+    background-position:center top !important;
+    background-repeat:repeat-y !important;
+    background-attachment:scroll !important;
+  }
+
+  /* Datums-/Navigationsteil bewusst zweizeilig:
+     Datum volle Breite, Navigation darunter ohne Überstand. */
+  .toolbar{
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    width:calc(100% - 20px) !important;
+    max-width:calc(100% - 20px) !important;
+    margin-left:auto !important;
+    margin-right:auto !important;
+    padding:14px !important;
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+  }
+  .toolbar .control,
+  .toolbar .statusline{
+    grid-column:1/-1 !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+  .toolbar input[type="date"]{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+  .toolbar button{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    box-sizing:border-box !important;
+    white-space:nowrap !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -221,7 +269,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 <div class="notice"><b>Belegungsregel:</b> Jede Buchung blockiert den jeweiligen Platz ab der Startzeit für 2 Stunden. Beispiel: Belegung um 11:00 Uhr → nächste Buchung ab 13:00 Uhr möglich.</div>
 </section>
 </main>
-<div class="version">Version 2.9</div>
+<div class="version">Version 2.10</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
