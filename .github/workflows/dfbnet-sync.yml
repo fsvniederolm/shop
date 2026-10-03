@@ -35,25 +35,25 @@ jobs:
           fi
 
       - name: Repository laden
-        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
+        if: steps.zeitfenster.outputs.run_sync == 'true' || github.event_name == 'workflow_dispatch'
         uses: actions/checkout@v4
 
       - name: Node.js einrichten
-        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
+        if: steps.zeitfenster.outputs.run_sync == 'true' || github.event_name == 'workflow_dispatch'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Abhängigkeiten installieren
-        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
+        if: steps.zeitfenster.outputs.run_sync == 'true' || github.event_name == 'workflow_dispatch'
         run: npm install
 
       - name: Chromium installieren
-        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
+        if: steps.zeitfenster.outputs.run_sync == 'true' || github.event_name == 'workflow_dispatch'
         run: npx playwright install --with-deps chromium
 
       - name: DFBnet mit Supabase synchronisieren
-        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
+        if: steps.zeitfenster.outputs.run_sync == 'true' || github.event_name == 'workflow_dispatch'
         run: npm run sync
         env:
           DFBNET_USERNAME: ${{ secrets.DFBNET_USERNAME }}
@@ -62,7 +62,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Fehler-Screenshot sichern
-        if: ${{ github.event_name == 'workflow_dispatch' || steps.zeitfenster.outputs.run_sync == 'true' }}
         if: failure()
         uses: actions/upload-artifact@v4
         with:
