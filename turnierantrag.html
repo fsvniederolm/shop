@@ -229,6 +229,61 @@ input,select,textarea{
   }
 }
 
+
+/* v1.12 – ALLE Felder exakt wie Mannschaft / Altersklasse */
+@media(max-width:700px){
+  .field{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    overflow:hidden !important;
+    box-sizing:border-box !important;
+  }
+
+  .field input:not([type="file"]),
+  .field select,
+  .field textarea{
+    -webkit-appearance:none !important;
+    appearance:none !important;
+    display:block !important;
+    position:static !important;
+    width:100% !important;
+    inline-size:100% !important;
+    max-width:100% !important;
+    max-inline-size:100% !important;
+    min-width:0 !important;
+    min-inline-size:0 !important;
+    height:58px !important;
+    min-height:58px !important;
+    max-height:58px !important;
+    margin:0 !important;
+    padding:0 14px !important;
+    border-radius:14px !important;
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+  }
+
+  /* native iOS intrinsic widths neutralisieren */
+  .field input[type="date"],
+  .field input[type="time"]{
+    font:inherit !important;
+    line-height:58px !important;
+  }
+
+  .field textarea{
+    line-height:1.3 !important;
+    padding-top:16px !important;
+    resize:none !important;
+  }
+
+  .field input[type="file"]{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -284,7 +339,7 @@ input,select,textarea{
 <div id="msg" class="msg"></div>
 </section>
 </main>
-<div class="version">Version 1.11</div>
+<div class="version">Version 1.12</div>
 
 <script>
 const EMAILJS_PUBLIC_KEY="4gRqrmu7JPDzAYBFo";
