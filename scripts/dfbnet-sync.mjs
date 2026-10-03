@@ -5,7 +5,7 @@ for (const k of required) if (!process.env[k]) throw new Error(`GitHub Secret ${
 
 const USER = process.env.DFBNET_USERNAME;
 const PASS = process.env.DFBNET_PASSWORD;
-const LOGIN_URL = process.env.DFBNET_LOGIN_URL || "https://www.dfbnet.org/spielplus/authenticate.do";
+const LOGIN_URL = process.env.DFBNET_LOGIN_URL || "https://www.dfbnet.org/spielplus/login.do?submit=Anmelden";
 const SB_URL = process.env.SUPABASE_URL.replace(/\/$/,"");
 const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const sbHeaders = {
@@ -31,24 +31,45 @@ const hhmm = s => {
 };
 
 async function login(page) {
-  await page.goto(LOGIN_URL, {waitUntil:"domcontentloaded", timeout:60000});
+  const loginUrl = process.env.DFBNET_LOGIN_URL ||
+    "https://www.dfbnet.org/spielplus/login.do?submit=Anmelden";
 
-  const user = page.locator('input[name*="user" i], input[id*="user" i], input[name*="kennung" i], input[id*="kennung" i], input[type="text"]').first();
-  const pass = page.locator('input[type="password"]').first();
-  await user.waitFor({state:"visible", timeout:30000});
-  await user.fill(USER);
-  await pass.fill(PASS);
+  console.log("DFBnet SpielPLUS öffnen …");
+  await page.goto(loginUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
 
-  const submit = page.getByRole("button", {name:/anmelden|login/i}).first();
-  if (await submit.count()) await submit.click();
-  else await pass.press("Enter");
-
-  await page.waitForLoadState("domcontentloaded");
-  await page.waitForTimeout(2000);
-  if (await page.locator('input[type="password"]').count()) {
-    const visible = await page.locator('input[type="password"]').first().isVisible().catch(()=>false);
-    if (visible) throw new Error("DFBnet-Login nicht erfolgreich. Zugangsdaten/zusätzliche Anmeldung prüfen.");
+  // SpielPLUS-Startseite: der Button "ANMELDEN" leitet zum zentralen DFB-SSO weiter.
+  const entryButton = page.getByRole("button", { name: /anmelden/i })
+    .or(page.getByRole("link", { name: /anmelden/i }));
+  if (await entryButton.count()) {
+    await Promise.all([
+      page.waitForLoadState("domcontentloaded").catch(() => {}),
+      entryButton.first().click()
+    ]);
   }
+
+  // DFB SSO (auth.dfbnet.org / Keycloak)
+  await page.waitForURL(/auth\.dfbnet\.org|dfbnet\.org/, { timeout: 30000 }).catch(() => {});
+
+  const user = page.locator(
+    'input[name="username"], input[id="username"], input[autocomplete="username"], input[placeholder*="Benutzer"], input[placeholder*="Kennung"]'
+  ).first();
+  const pass = page.locator(
+    'input[name="password"], input[id="password"], input[type="password"], input[autocomplete="current-password"]'
+  ).first();
+
+  await user.waitFor({ state: "visible", timeout: 30000 });
+  await pass.waitFor({ state: "visible", timeout: 30000 });
+  await user.fill(process.env.DFBNET_USERNAME);
+  await pass.fill(process.env.DFBNET_PASSWORD);
+
+  const submit = page.getByRole("button", { name: /^anmelden$/i })
+    .or(page.locator('button[type="submit"], input[type="submit"]'));
+  await submit.first().click();
+
+  // Nach erfolgreichem SSO zurück nach SpielPLUS warten.
+  await page.waitForURL(url => !url.hostname.includes("auth.dfbnet.org"), { timeout: 60000 });
+  await page.waitForLoadState("domcontentloaded");
+  console.log("DFBnet-Anmeldung abgeschlossen:", page.url());
 }
 
 async function openVenues(page) {
