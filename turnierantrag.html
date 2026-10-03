@@ -189,6 +189,46 @@ input,select,textarea{
   }
 }
 
+
+/* v1.11 – iPhone Date/Time endgültig an Spielort-Breite angleichen */
+@media(max-width:700px){
+  .field{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  .field input[type="date"],
+  .field input[type="time"]{
+    -webkit-appearance:none !important;
+    appearance:none !important;
+    display:block !important;
+    position:relative !important;
+    left:0 !important;
+    right:auto !important;
+    inline-size:100% !important;
+    width:100% !important;
+    max-inline-size:100% !important;
+    max-width:100% !important;
+    min-inline-size:0 !important;
+    min-width:0 !important;
+    height:58px !important;
+    min-height:58px !important;
+    padding:0 14px !important;
+    margin:0 !important;
+    border-radius:14px !important;
+    box-sizing:border-box !important;
+  }
+
+  /* Safari kann für native date/time trotz width:100% eine intrinsische
+     Breite behalten. Der Wrapper begrenzt diese exakt auf die Formularspalte. */
+  .field:has(> input[type="date"]),
+  .field:has(> input[type="time"]){
+    overflow:hidden !important;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -244,7 +284,7 @@ input,select,textarea{
 <div id="msg" class="msg"></div>
 </section>
 </main>
-<div class="version">Version 1.10</div>
+<div class="version">Version 1.11</div>
 
 <script>
 const EMAILJS_PUBLIC_KEY="4gRqrmu7JPDzAYBFo";
