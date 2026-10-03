@@ -135,6 +135,62 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 .tick{color:rgba(255,255,255,.72) !important;border-color:rgba(255,255,255,.08) !important}
 .rule{background:rgba(227,6,19,.10) !important;color:rgba(255,255,255,.78) !important}
 
+
+/* v2.9 Smartphone-Fix */
+@media(max-width:560px){
+  html,body{max-width:100%;overflow-x:hidden}
+
+  /* Stadionmotiv: auf Mobilgeräten bewusst nach rechts/oben gerahmt,
+     damit neben dem Platz auch das Vereins-/Stadionhaus sichtbar bleibt. */
+  body{
+    background-size:auto 100vh !important;
+    background-position:78% top !important;
+    background-repeat:no-repeat !important;
+    background-attachment:fixed !important;
+  }
+
+  .toolbar{
+    width:100%;
+    max-width:100%;
+    overflow:hidden;
+    display:grid !important;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:8px !important;
+  }
+  .toolbar .control{
+    grid-column:1/-1;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+  }
+  .toolbar .control input,
+  .toolbar input[type="date"]{
+    display:block;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    box-sizing:border-box !important;
+  }
+  .toolbar button{
+    width:100%;
+    min-width:0 !important;
+    max-width:100%;
+    padding-left:5px !important;
+    padding-right:5px !important;
+    white-space:nowrap;
+  }
+  .statusline{
+    grid-column:1/-1;
+    width:100%;
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+}
+@media(max-width:390px){
+  .toolbar{gap:6px !important}
+  .toolbar button{font-size:10.5px !important}
+}
+
 </style>
 </head>
 <body>
@@ -165,7 +221,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 <div class="notice"><b>Belegungsregel:</b> Jede Buchung blockiert den jeweiligen Platz ab der Startzeit für 2 Stunden. Beispiel: Belegung um 11:00 Uhr → nächste Buchung ab 13:00 Uhr möglich.</div>
 </section>
 </main>
-<div class="version">Version 2.8</div>
+<div class="version">Version 2.9</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
