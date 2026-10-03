@@ -464,6 +464,98 @@ button:hover,.submit:hover{transform:translateY(-1px)}
   }
 }
 
+
+/* v2.16 – vollständiger Balkentext + Datumsfeld ohne rechten Beschnitt */
+.toolbar,
+.toolbar .control{
+  box-sizing:border-box !important;
+  min-width:0 !important;
+}
+.toolbar .control{
+  overflow:hidden !important;
+}
+.toolbar input[type="date"]{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+}
+
+/* Genug Höhe für die komplette Spielbeschreibung */
+.pitch-row,
+.pitch-row>.pitch-label,
+.pitch-row>.track{
+  height:112px !important;
+  min-height:112px !important;
+}
+.booking{
+  top:6px !important;
+  bottom:auto !important;
+  height:100px !important;
+  min-height:100px !important;
+  max-height:100px !important;
+  padding:7px 9px !important;
+  border:2px solid #000 !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+}
+.booking b{
+  display:block !important;
+  line-height:1.12 !important;
+}
+.booking small{
+  display:block !important;
+  margin-top:3px !important;
+  font-size:12px !important;
+  line-height:1.12 !important;
+  white-space:normal !important;
+  overflow:hidden !important;
+  text-overflow:clip !important;
+  max-height:5.6em !important;
+}
+
+@media(max-width:560px){
+  .toolbar{
+    width:calc(100% - 28px) !important;
+    max-width:calc(100% - 28px) !important;
+    margin-left:14px !important;
+    margin-right:14px !important;
+    padding:12px !important;
+  }
+  .toolbar .control,
+  .toolbar input[type="date"]{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  .schedule .pitch-row,
+  .schedule .pitch-row>.pitch-label,
+  .schedule .pitch-row>.track{
+    height:148px !important;
+    min-height:148px !important;
+    max-height:148px !important;
+  }
+  .schedule .booking{
+    top:7px !important;
+    bottom:auto !important;
+    height:134px !important;
+    min-height:134px !important;
+    max-height:134px !important;
+    padding:9px 10px !important;
+    overflow:hidden !important;
+  }
+  .schedule .booking small{
+    font-size:12px !important;
+    line-height:1.15 !important;
+    max-height:6.9em !important;
+    white-space:normal !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -493,7 +585,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 </div></div>
 </section>
 </main>
-<div class="version">Version 2.15</div>
+<div class="version">Version 2.16</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
