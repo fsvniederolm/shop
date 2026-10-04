@@ -778,7 +778,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 </div></div>
 </section>
 </main>
-<div class="version">Version 2.23</div>
+<div class="version">Version 2.24</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
@@ -818,7 +818,7 @@ function nextFree(bookings,pitch){
  if(dateEl.value===today){
    const n=new Date(); cursor=Math.max(cursor,Math.ceil((n.getHours()*60+n.getMinutes())/30)*30);
  }
- const blocks=bookings.filter(b=>b.pitch===pitch).map(b=>({s:b.start,e:b.start+BLOCK})).sort((a,b)=>a.s-b.s);
+ const blocks=bookings.filter(b=>b.pitch===pitch).map(b=>({s:b.start,e:b.end??(b.start+BLOCK)})).sort((a,b)=>a.s-b.s);
  for(const b of blocks){
    if(cursor>=b.s && cursor<b.e) cursor=b.e;
  }
@@ -883,13 +883,20 @@ async function loadBookings(){
 
    const toBookings=(rows)=>{
      const activeData=rows.filter(x=>!/abgesetzt|abgesagt|ausgefallen|spielausfall|nicht statt|cancel|cancell|absetz/i.test(x.status||""));
-     return activeData.map(x=>({
-       pitch:mapPitch(x.spielstaette),
-       start:parseMin(x.anstoss),
-       age:x.liga||"Liga nicht angegeben",
-       trainer:[x.heim,x.gast].filter(Boolean).join(" – "),
-       kennung:x.kennung||""
-     })).filter(x=>x.pitch);
+     return activeData.map(x=>{
+       const start=parseMin(x.anstoss);
+       const text=[x.liga,x.heim,x.gast].filter(Boolean).join(" ");
+       const isTurnier=/turnier/i.test(text);
+       return {
+         pitch:mapPitch(x.spielstaette),
+         start,
+         end:start+(isTurnier?180:BLOCK),
+         age:x.liga||"Liga nicht angegeben",
+         trainer:[x.heim,x.gast].filter(Boolean).join(" – "),
+         kennung:x.kennung||"",
+         turnier:isTurnier
+       };
+     }).filter(x=>x.pitch);
    };
    const manualBookings=()=>manualData.map(x=>({
      pitch:mapPitch(x.spielstaette),
