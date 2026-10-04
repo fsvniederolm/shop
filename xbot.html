@@ -10,6 +10,30 @@ button{cursor:pointer}.primary{width:100%;margin-top:20px;padding:15px;border:0;
 .nav{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:0 0 16px}.nav button{background:#1d2229;color:#fff;border:1px solid #ffffff28;border-radius:11px;padding:10px 12px;font-weight:700}.month{font-weight:850;font-size:18px;text-align:center}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.dow{font-size:12px;color:#ffffff9c;text-align:center;padding:6px 0}.day{min-height:92px;border:1px solid #ffffff20;border-radius:13px;padding:8px;background:#12171dcc;overflow:hidden}.day.muted{opacity:.35}.day.today{border-color:#e30613}.num{font-weight:800;margin-bottom:6px}.booking{background:#e30613;border:1px solid #000;border-radius:7px;padding:5px 6px;font-size:11px;line-height:1.2;margin-top:4px}.booking b{display:block}.legend{font-size:13px;color:#ffffffaa;margin-top:12px}.login{max-width:460px;margin:80px auto}#app{display:none}.back{position:fixed;left:16px;bottom:16px;text-decoration:none;color:#fff;background:#101419;border:1px solid #ffffff30;border-radius:999px;padding:12px 17px;font-weight:800}.version{position:fixed;right:14px;bottom:13px;color:#ffffff70;font-size:12px}
 @media(max-width:650px){.grid{grid-template-columns:1fr}.week{gap:4px}.day{min-height:78px;padding:5px}.booking{font-size:9px;padding:4px}.wrap{padding:12px 9px 75px}.card{padding:16px}h1{font-size:25px}}
+
+/* v1.2 – iPhone Datumsfeld */
+#datum{
+  width:100%!important; max-width:100%!important; min-width:0!important;
+  box-sizing:border-box!important; height:56px!important;
+  padding:0 14px!important; line-height:56px!important;
+}
+@supports (-webkit-touch-callout:none){
+  #datum{
+    -webkit-appearance:none!important; appearance:none!important;
+    display:block!important; padding-top:0!important; padding-bottom:0!important;
+  }
+  #datum::-webkit-date-and-time-value{
+    min-height:56px!important; line-height:56px!important;
+    text-align:left!important; margin:0!important; padding:0!important;
+  }
+}
+.day{position:relative}
+.booking{position:relative;padding-right:23px}
+.booking .xdel{
+ position:absolute;right:3px;top:3px;width:18px;height:18px;padding:0;margin:0;
+ border:0;border-radius:50%;background:#0009;color:#fff;font-size:13px;
+ line-height:18px;text-align:center;font-weight:900;
+}
 </style></head><body>
 <div class="wrap">
 <section id="login" class="card login"><h1>XBOT Kamerasystem</h1><div class="sub">Ausleihe für Trainer</div><label>Passwort</label><input id="pw" type="password" autocomplete="current-password"><button class="primary" onclick="login()">Öffnen</button><div id="loginMsg" class="msg"></div></section>
@@ -22,7 +46,7 @@ button{cursor:pointer}.primary{width:100%;margin-top:20px;padding:15px;border:0;
 <div class="grid"><div><label>Von *</label><select id="von" required></select></div><div><label>Bis *</label><select id="bis" required></select></div></div>
 <button class="primary" type="submit">XBOT reservieren</button><div class="msg" id="msg"></div></form></section>
 <section class="card"><div class="nav"><button onclick="move(-1)">‹</button><div id="month" class="month"></div><button onclick="move(1)">›</button></div><div class="week" id="calendar"></div><div class="legend">Im Kalender wird das reservierende Team angezeigt. Buchungen erfolgen im 30-Minuten-Takt, maximal 2 Stunden.</div></section>
-</div></div><a class="back" href="mein-fsv.html">← Mein FSV</a><div class="version">Version 1.1</div>
+</div></div><a class="back" href="mein-fsv.html">← Mein FSV</a><div class="version">Version 1.2</div>
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
 const SUPABASE_KEY="sb_publishable_omPVDjNvHQ5SULxKhJQqUA_-rCJ0PL3";
@@ -46,8 +70,16 @@ function mins(t){const [h,m]=t.split(":").map(Number);return h*60+m}
 async function getRows(start,end){let r=await fetch(`${SUPABASE_URL}/rest/v1/xbot_ausleihe?select=*&datum=gte.${start}&datum=lte.${end}&order=datum.asc,uhrzeit_von.asc`,{headers:H});if(!r.ok)throw Error(await r.text());return r.json()}
 async function render(){let first=new Date(cursor), start=new Date(first);start.setDate(1-((first.getDay()+6)%7));let end=new Date(start);end.setDate(start.getDate()+41);let rows=[];try{rows=await getRows(iso(start),iso(end))}catch(e){$("calendar").innerHTML="Kalender konnte nicht geladen werden.";return}
 $("month").textContent=cursor.toLocaleDateString("de-DE",{month:"long",year:"numeric"});let html=["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<div class="dow">${x}</div>`).join("");
-for(let i=0;i<42;i++){let d=new Date(start);d.setDate(start.getDate()+i);let rs=rows.filter(x=>x.datum===iso(d));let cls="day"+(d.getMonth()!=cursor.getMonth()?" muted":"")+(iso(d)===iso(new Date())?" today":"");html+=`<div class="${cls}"><div class="num">${d.getDate()}</div>${rs.map(x=>`<div class="booking"><b>${x.uhrzeit_von.slice(0,5)}–${x.uhrzeit_bis.slice(0,5)}</b>${esc(x.mannschaft)}</div>`).join("")}</div>`}$("calendar").innerHTML=html}
+for(let i=0;i<42;i++){let d=new Date(start);d.setDate(start.getDate()+i);let rs=rows.filter(x=>x.datum===iso(d));let cls="day"+(d.getMonth()!=cursor.getMonth()?" muted":"")+(iso(d)===iso(new Date())?" today":"");html+=`<div class="${cls}"><div class="num">${d.getDate()}</div>${rs.map(x=>`<div class="booking"><b>${x.uhrzeit_von.slice(0,5)}–${x.uhrzeit_bis.slice(0,5)}</b>${esc(x.mannschaft)}<button class="xdel" title="Reservierung löschen" onclick="event.stopPropagation();delBooking(\'${x.id}\')">×</button></div>`).join("")}</div>`}$("calendar").innerHTML=html}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+async function delBooking(id){
+ if(!confirm("Diese XBOT-Reservierung wirklich löschen?"))return;
+ const r=await fetch(`${SUPABASE_URL}/rest/v1/xbot_ausleihe?id=eq.${encodeURIComponent(id)}`,{
+   method:"DELETE",headers:{...H,Prefer:"return=representation"}
+ });
+ if(!r.ok){alert("Reservierung konnte nicht gelöscht werden.");return}
+ await render();
+}
 function move(n){cursor.setMonth(cursor.getMonth()+n);render()}
 $("form").addEventListener("submit",async e=>{e.preventDefault();$("msg").textContent="Prüfe Verfügbarkeit …";let von=$("von").value,bis=$("bis").value;if(bis<=von){$("msg").textContent="„Bis“ muss nach „Von“ liegen.";return} if(mins(bis)-mins(von)>120){$("msg").textContent="Die maximale Ausleihzeit beträgt 2 Stunden.";return}
 let d=$("datum").value;let check=await getRows(d,d);if(check.some(x=>von<x.uhrzeit_bis.slice(0,5)&&bis>x.uhrzeit_von.slice(0,5))){$("msg").textContent="XBOT ist in diesem Zeitraum bereits reserviert.";return}
