@@ -740,6 +740,17 @@ button:hover,.submit:hover{transform:translateY(-1px)}
   }
 }
 
+
+/* v2.22 – Smartphone: Stunden weiter auseinander für breitere 60-Minuten-Blöcke */
+@media(max-width:700px){
+  .schedule{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+  .time-head .track,
+  .pitch-row .track{
+    min-width:1260px!important;
+    width:1260px!important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -769,7 +780,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 </div></div>
 </section>
 </main>
-<div class="version">Version 2.21</div>
+<div class="version">Version 2.22</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
