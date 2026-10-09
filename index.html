@@ -111,6 +111,31 @@ button:hover,.submit:hover{transform:translateY(-1px)}
   color: #f5f7fa !important;
 }
 
+
+/* Rubrikenfilter Vereinskleidung */
+.category-filters{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 18px}
+.category-filter{border:1px solid #46505b;background:#1b232d;color:#f5f7fa;border-radius:999px;padding:10px 15px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.category-filter:hover{border-color:#e30613}
+.category-filter.active{background:#e30613;border-color:#e30613;color:#fff}
+.category-filter:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+/* Fixierter Warenkorb-Zugang in der Kopfzeile */
+.header-inner > div { min-width:0; flex:1; }
+.header-cart { flex:0 0 auto; margin-left:auto; display:flex; align-items:center; gap:10px; background:#202831; color:#fff; border:1px solid #47515e; border-radius:14px; padding:10px 14px; cursor:pointer; font:700 15px Arial,Helvetica,sans-serif; white-space:nowrap; }
+.header-cart:hover,.header-cart:focus-visible { border-color:#e30613; background:#303943; }
+.header-cart-icon { position:relative; font-size:25px; line-height:1.2; padding-right:8px; }
+.header-cart-count { position:absolute; top:-8px; right:-9px; min-width:20px; height:20px; border-radius:12px; padding:0 5px; display:flex; justify-content:center; align-items:center; background:#e30613; color:white; font-size:11px; font-weight:800; }
+.header-cart-price { font-weight:800; font-variant-numeric:tabular-nums; }
+#warenkorb { scroll-margin-top:125px; }
+@media(max-width:700px) {
+  .header-inner { gap:9px; }
+  .header-inner .logo { width:48px; height:48px; }
+  .header-inner h1 { font-size:clamp(13px,3.4vw,20px); line-height:1.15; }
+  .header-inner .sub { font-size:11px; }
+  .header-cart { padding:9px 8px; gap:5px; font-size:12px; border-radius:11px; }
+  .header-cart-icon { font-size:21px; }
+  #warenkorb { scroll-margin-top:100px; }
+}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -137,6 +162,10 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_omPVDjNvHQ5SULxKhJQqUA_-rCJ0PL3
       <h1>FSV Nieder-Olm Vereinskleidung</h1>
       <div class="sub">Digitales Bestellformular</div>
     </div>
+    <button type="button" id="headerCart" class="header-cart" onclick="document.getElementById('warenkorb').scrollIntoView({behavior:'smooth',block:'start'})" aria-label="Zum Warenkorb springen">
+      <span class="header-cart-icon" aria-hidden="true">🛒<span id="headerCartCount" class="header-cart-count">0</span></span>
+      <span class="header-cart-price" id="headerCartTotal">0,00 €</span>
+    </button>
   </div>
 </header>
 
@@ -157,10 +186,11 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_omPVDjNvHQ5SULxKhJQqUA_-rCJ0PL3
     </section>
 
     <h2 class="section-title">Artikel auswählen</h2>
+    <div id="categoryFilters" class="category-filters" aria-label="Artikelrubriken"></div>
     <div id="products" class="product-grid"></div>
   </main>
 
-  <aside class="panel cart">
+  <aside class="panel cart" id="warenkorb">
     <h2>🛒 Warenkorb</h2>
     <div id="cartList"><span class="small">Noch keine Artikel im Warenkorb.</span></div>
     <div class="total"><span>Gesamt</span><span id="total">0,00 €</span></div>
@@ -179,6 +209,40 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_omPVDjNvHQ5SULxKhJQqUA_-rCJ0PL3
 
 <script>
 const items = [{"id": "TR-ROT-SQ25", "name": "Trikot Squadra 25, kurzarm, rot", "child": 16.0, "adult": 18.4, "initials": true, "badge": true, "number": true, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/trikot-squadra-25-rot.jpg"}, {"id": "TR-ROT-EN26", "name": "Trikot Entrada 26, kurzarm, rot", "child": 12.0, "adult": 14.4, "initials": true, "badge": true, "number": true, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/trikot-entrada-26-rot.jpg"}, {"id": "SH-ROT-SQ25", "name": "Squadra 25 Shorts, rot", "child": 16.0, "adult": 18.4, "initials": false, "badge": false, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/squadra-25-shorts-rot.jpg"}, {"id": "ST-ROT", "name": "Stutzen, rot", "child": 8.0, "adult": 8.0, "initials": false, "badge": false, "number": false, "category": "Schuhgröße", "sizes": ["Schuhgröße Eingabe"], "image": "images/stutzen-rot.jpg"}, {"id": "SL-ROT", "name": "Sleeves, rot", "child": 9.6, "adult": 9.6, "initials": false, "badge": false, "number": false, "category": "Schuhgröße", "sizes": ["Schuhgröße Eingabe"], "image": "images/sleeves-rot.jpg"}, {"id": "TR-SCHW-SQ25", "name": "Trikot Squadra 25, kurzarm, schwarz", "child": 16.0, "adult": 18.4, "initials": true, "badge": true, "number": true, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/trikot-squadra-25-schwarz.jpg"}, {"id": "SH-SCHW-SQ25", "name": "Squadra 25 Shorts, schwarz", "child": 16.0, "adult": 18.4, "initials": false, "badge": false, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/squadra-25-shorts-schwarz.jpg"}, {"id": "ST-SCHW", "name": "Stutzen, schwarz", "child": 8.0, "adult": 8.0, "initials": false, "badge": false, "number": false, "category": "Schuhgröße", "sizes": ["Schuhgröße Eingabe"], "image": "images/stutzen-schwarz.jpg"}, {"id": "SL-SCHW", "name": "Sleeves, schwarz", "child": 9.6, "adult": 9.6, "initials": false, "badge": false, "number": false, "category": "Schuhgröße", "sizes": ["Schuhgröße Eingabe"], "image": "images/sleeves-schwarz.jpg"}, {"id": "TW-ORANGE", "name": "TW-Trikot Orange", "child": 24.0, "adult": 28.0, "initials": true, "badge": true, "number": true, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/tw-trikot-orange.jpg"}, {"id": "TW-GRUEN", "name": "TW-Trikot Grün", "child": 24.0, "adult": 28.0, "initials": true, "badge": true, "number": true, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/tw-trikot-gruen.jpg"}, {"id": "TW-HOSE", "name": "TW-Hose", "child": 36.0, "adult": 40.0, "initials": false, "badge": false, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/tw-hose.jpg"}, {"id": "U-WEISS", "name": "Unterzieh Shirt weiß, langarm", "child": 26.4, "adult": 32.0, "initials": false, "badge": false, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/unterziehshirt-weiss.jpg"}, {"id": "U-SCHW", "name": "Unterzieh Shirt schwarz, langarm", "child": 26.4, "adult": 32.0, "initials": false, "badge": false, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/unterziehshirt-schwarz.jpg"}, {"id": "JACKE-ROT-SQ25", "name": "Trainingsjacke Squadra 25, rot", "child": 32.0, "adult": 36.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/trainingsjacke-squadra-25-rot.jpg"}, {"id": "JACKE-SCHW-SQ25", "name": "Trainingsjacke Squadra 25, schwarz", "child": 32.0, "adult": 36.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/trainingsjacke-squadra-25-schwarz.jpg"}, {"id": "HOSE-SCHW-SQ25", "name": "Trainingshose Squadra 25, schwarz", "child": 32.0, "adult": 36.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/trainingshose-squadra-25-schwarz.jpg"}, {"id": "HOSE-SCHW-EN26", "name": "Trainingshose Entrada 26, schwarz", "child": 32.0, "adult": 36.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/trainingshose-entrada-26-schwarz.jpg"}, {"id": "TOP-ROT", "name": "TR-Top, langarm, rot", "child": 32.0, "adult": 36.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/tr-top-rot.jpg"}, {"id": "TOP-SCHW", "name": "TR-Top, langarm, schwarz", "child": 32.0, "adult": 36.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/tr-top-schwarz.jpg"}, {"id": "SHORT-SR", "name": "TR-Short schwarz/rot, Reißverschluss", "child": 24.0, "adult": 28.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/tr-short-schwarz-rot.jpg"}, {"id": "SHORT-SG", "name": "TR-Short schwarz/grau, Reißverschluss", "child": 24.0, "adult": 28.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/tr-short-schwarz-grau.jpg"}, {"id": "HOODIE-ROT", "name": "Hoodie, rot (dick)", "child": 40.0, "adult": 44.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/hoodie-rot.jpg"}, {"id": "HOODIE-SCHW", "name": "Hoodie, schwarz (dick)", "child": 40.0, "adult": 44.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/hoodie-schwarz.jpg"}, {"id": "POLO-SCHW", "name": "Polo, schwarz", "child": 20.0, "adult": 24.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/polo-schwarz.jpg"}, {"id": "REGEN-SCHW", "name": "Regenjacke, schwarz", "child": 44.0, "adult": 48.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/regenjacke-schwarz.jpg"}, {"id": "COACH", "name": "Coach Jacke", "child": 72.0, "adult": 80.0, "initials": true, "badge": true, "number": false, "category": "Kleidung", "sizes": ["116", "128", "140", "152", "164", "S", "M", "L", "XL", "2XL", "3XL"], "image": "images/coach-jacke.jpg"}, {"id": "RUCKSACK", "name": "Rucksack, schwarz", "child": 32.0, "adult": 32.0, "initials": true, "badge": true, "number": false, "category": "Sonstiges", "sizes": ["Einheitsgröße"], "image": "images/rucksack-schwarz.jpg"}, {"id": "TASCHE-S", "name": "Sporttasche, schwarz, mit Schuhfach Gr. S", "child": 30.4, "adult": 30.4, "initials": true, "badge": true, "number": false, "category": "Sonstiges", "sizes": ["S"], "image": "images/sporttasche-s.jpg"}, {"id": "TASCHE-M", "name": "Sporttasche, schwarz, mit Schuhfach Gr. M", "child": 36.0, "adult": 36.0, "initials": true, "badge": true, "number": false, "category": "Sonstiges", "sizes": ["M"], "image": "images/sporttasche-m.jpg"}, {"id": "MUETZE", "name": "Wollmütze", "child": 20.0, "adult": 20.0, "initials": false, "badge": false, "number": false, "category": "Sonstiges", "sizes": ["OSFY", "OSFM"], "image": "images/wollmuetze.jpg"}, {"id": "HANDSCHUHE", "name": "Handschuhe", "child": 28.0, "adult": 28.0, "initials": false, "badge": false, "number": false, "category": "Sonstiges", "sizes": ["4", "5", "6", "7", "8", "9", "10", "11", "12"], "image": "images/handschuhe.jpg"}];
+const rubriken = ['Alle Artikel', 'Spielkleidung', 'Torwartkleidung', 'Trainingskleidung', 'Freizeit & Wetter', 'Taschen & Rucksäcke', 'Accessoires'];
+function artikelRubrik(idx) {
+  if (idx <= 8) return 'Spielkleidung';
+  if (idx <= 11) return 'Torwartkleidung';
+  if (idx <= 13) return 'Freizeit & Wetter';
+  if (idx <= 21) return 'Trainingskleidung';
+  if (idx <= 26) return 'Freizeit & Wetter';
+  if (idx <= 29) return 'Taschen & Rucksäcke';
+  return 'Accessoires';
+}
+function filterRubrik(rubrik) {
+  document.querySelectorAll('#products .card').forEach(card => {
+    card.hidden = rubrik !== 'Alle Artikel' && card.dataset.rubrik !== rubrik;
+    card.style.display = card.hidden ? 'none' : '';
+  });
+  document.querySelectorAll('.category-filter').forEach(button => {
+    const active = button.dataset.rubrik === rubrik;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+function renderRubriken() {
+  const root = document.getElementById('categoryFilters');
+  rubriken.forEach(rubrik => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'category-filter';
+    button.dataset.rubrik = rubrik;
+    button.textContent = rubrik;
+    button.addEventListener('click', () => filterRubrik(rubrik));
+    root.appendChild(button);
+  });
+  filterRubrik('Alle Artikel');
+}
 const cart = [];
 function euro(n) { return Number(n).toLocaleString('de-DE', {style:'currency', currency:'EUR'}); }
 function isChildSize(size) { return ['116','128','140','152','164','OSFY'].includes(size); }
@@ -213,7 +277,7 @@ function renderProducts() {
     const sizeInput = it.category === 'Schuhgröße' 
       ? `<label>Schuhgröße</label><input id="shoe_${idx}" placeholder="z.B. 34" oninput="currentPrice(items[${idx}],${idx})"><div class="small" id="shoeres_${idx}">Schuhgröße eingeben</div>`
       : `<label>Größe</label><select id="size_${idx}" onchange="currentPrice(items[${idx}],${idx})">${it.sizes.map(s=>`<option>${s}</option>`).join('')}</select>`;
-    return `<div class="card">
+    return `<div class="card" data-rubrik="${artikelRubrik(idx)}">
       <div class="imgbox">
         <img src="${it.image || ''}" alt="${it.name}" onerror="this.style.display='none'; this.parentElement.querySelector('.placeholder').style.display='block';">
         <span class="placeholder">Artikelbild fehlt<br><span class="small">${it.image || 'kein Bild hinterlegt'}</span></span>
@@ -318,6 +382,8 @@ function renderCart() {
   }
   const sum = cart.reduce((a,c)=>a+c.line,0);
   document.getElementById('total').textContent = euro(sum);
+  document.getElementById('headerCartCount').textContent = cart.reduce((a,c)=>a+Number(c.qty || 0),0);
+  document.getElementById('headerCartTotal').textContent = euro(sum);
   const name = (document.getElementById('vorname').value + ' ' + document.getElementById('nachname').value).trim();
   document.getElementById('vwz').textContent = (name || 'Vor- und Nachname des Spielers') + ' Vereinskleidung';
 }
@@ -625,7 +691,8 @@ ${err?.text || err?.message || err}`;
   }
 }
 renderProducts();
+renderRubriken();
 </script>
-<div class="version-badge">Version 2.20</div>
+<div class="version-badge">Version 2.22</div>
 </body>
 </html>
