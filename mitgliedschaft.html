@@ -35,7 +35,7 @@ function val(n){return f.elements[n].value.trim()}function fmt(s){if(!s)return '
  set('Staatsangehörigkeit',val('staat'));set('Straße',val('strasse'));
  set('PLZ und Ort',val('plz')+' '+val('ort'));check(g);
  if(w){set('bisheriger Verein',val('altverein'));set('Landesverband',val('verband'));
- set('Abmeldung am',fmt(val('abmeldung')));set('Letztes Spiel',fmt(val('letztes'));
+ set('Abmeldung am',fmt(val('abmeldung')));set('Letztes Spiel',fmt(val('letztes')));
  check('Verbandsstrafe nein');check('Spieler aus dem Ausland nein');}
  pf.updateFieldAppearances(font);pf.flatten();
  // Crop transparent margins so the actual finger stroke lands inside the PDF signature line.
