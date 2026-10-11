@@ -390,7 +390,7 @@ input,select,textarea{
 <div id="msg" class="msg"></div>
 </section>
 </main>
-<div class="version">Version 1.14</div>
+<div class="version">Version 1.15</div>
 
 <script>
 const EMAILJS_PUBLIC_KEY="4gRqrmu7JPDzAYBFo";
@@ -489,8 +489,20 @@ async function uploadPdf(bytes,filename){
  return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
 }
 async function uploadPdfFile(file,filename){
- const bytes=await file.arrayBuffer();
- return uploadPdf(new Uint8Array(bytes),filename);
+ // Turnierplaene unveraendert als Bild oder PDF speichern, nicht pauschal als PDF.
+ const extension=(file.name.match(/\.[a-zA-Z0-9]+$/)||[""])[0].toLowerCase();
+ const mimeByExtension={".jpg":"image/jpeg",".jpeg":"image/jpeg",".png":"image/png",".webp":"image/webp",".heic":"image/heic",".heif":"image/heif",".pdf":"application/pdf"};
+ const mimeType=mimeByExtension[extension];
+ if(!mimeType) throw new Error("Turnierplan: Bitte JPG, JPEG, PNG, WEBP, HEIC, HEIF oder PDF verwenden.");
+ const safeName=(crypto.randomUUID ? crypto.randomUUID() : Date.now()+"-"+Math.random().toString(36).slice(2))+"_"+filename.replace(/[^a-zA-Z0-9._-]+/g,"_");
+ const path=encodeURIComponent(safeName);
+ const res=await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`,{
+   method:"POST",
+   headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":mimeType,"x-upsert":"false"},
+   body:file
+ });
+ if(!res.ok) throw new Error("Turnierplan konnte nicht in Supabase gespeichert werden: "+await res.text());
+ return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
 }
 async function saveApplication(data){
  const res=await fetch(`${SUPABASE_URL}/rest/v1/turnierantraege`,{
