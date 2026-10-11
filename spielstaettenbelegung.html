@@ -777,7 +777,7 @@ button:hover,.submit:hover{transform:translateY(-1px)}
  border-radius:8px !important;
 }
 .schedule .booking.project-booking .project-team{
- display:block;font-size:clamp(15px,1.6vw,20px);font-weight:900;
+ display:block;font-size:clamp(12px,1.1vw,15px);font-weight:900;
  line-height:1.12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
  max-width:100%;
 }
@@ -786,9 +786,23 @@ button:hover,.submit:hover{transform:translateY(-1px)}
  white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;
 }
 @media(max-width:560px){
- .schedule .booking.project-booking .project-team{font-size:17px !important}
+ .schedule .booking.project-booking .project-team{font-size:13px !important}
  .schedule .booking.project-booking .project-time{font-size:10px !important}
 }
+
+/* v2.28: kleine, lesbare Balken; vollstaendige Details per Tap/Klick */
+.schedule .booking.project-booking{cursor:pointer;touch-action:manipulation}
+.schedule .booking.project-booking:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.schedule .booking.project-booking .project-team{font-weight:750;letter-spacing:0}
+.booking-detail-overlay{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box}
+.booking-detail-overlay[hidden]{display:none!important}
+.booking-detail-card{width:min(420px,100%);background:#151a20;color:#fff;border:1px solid #46515d;border-radius:16px;box-shadow:0 20px 65px #000a;padding:22px;box-sizing:border-box;font-family:inherit}
+.booking-detail-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.booking-detail-type{font-size:13px;font-weight:750;color:#9caab7}
+.booking-detail-close{border:1px solid #637080;border-radius:9px;background:#29323d;color:white;font-size:24px;cursor:pointer;width:40px;height:40px}
+.booking-detail-name{font-size:clamp(23px,6vw,32px);line-height:1.15;margin:16px 0 12px;overflow-wrap:anywhere}
+.booking-detail-info{font-size:16px;line-height:1.55;margin:7px 0;overflow-wrap:anywhere}
+.booking-detail-hint{color:#b6c1cd;font-size:12px;margin-top:20px}
 </style>
 </head>
 <body>
@@ -818,7 +832,17 @@ button:hover,.submit:hover{transform:translateY(-1px)}
 </div></div>
 </section>
 </main>
-<div class="version">Version 2.27</div>
+<div class="version">Version 2.28</div>
+<div id="bookingDetail" class="booking-detail-overlay" hidden aria-hidden="true">
+ <div class="booking-detail-card" role="dialog" aria-modal="true" aria-labelledby="bookingDetailName">
+  <div class="booking-detail-top"><span class="booking-detail-type" id="bookingDetailType"></span><button class="booking-detail-close" id="bookingDetailClose" type="button" aria-label="Details schließen">×</button></div>
+  <h2 class="booking-detail-name" id="bookingDetailName"></h2>
+  <p class="booking-detail-info" id="bookingDetailTime"></p>
+  <p class="booking-detail-info" id="bookingDetailPitch"></p>
+  <p class="booking-detail-info" id="bookingDetailExtra" hidden></p>
+  <div class="booking-detail-hint">Tippe außerhalb des Fensters oder auf × zum Schließen.</div>
+ </div>
+</div>
 
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
@@ -889,6 +913,28 @@ function assignTimelineLanes(items){
  }
  flush();return result;
 }
+let detailPreviousFocus=null;
+function closeBookingDetail(){
+ const overlay=document.getElementById("bookingDetail");
+ overlay.hidden=true;overlay.setAttribute("aria-hidden","true");
+ if(detailPreviousFocus&&detailPreviousFocus.isConnected)detailPreviousFocus.focus();
+}
+function openBookingDetail(b,p){
+ detailPreviousFocus=document.activeElement;
+ document.getElementById("bookingDetailType").textContent=b.training?"Training":b.manual?"Fußballschule":"DFBnet / Spiel";
+ document.getElementById("bookingDetailName").textContent=b.age||"Belegung";
+ document.getElementById("bookingDetailTime").textContent="Uhrzeit: "+fmtMin(b.start).replace(" Uhr","")+"–"+fmtMin(b.end??(b.start+BLOCK));
+ document.getElementById("bookingDetailPitch").textContent="Spielstätte: "+p;
+ const extra=document.getElementById("bookingDetailExtra");
+ const details=[b.trainer||"",b.kennung?"Spielkennung: "+b.kennung:""] .filter(Boolean);
+ extra.hidden=!details.length;extra.textContent=details.join(" · ");
+ const overlay=document.getElementById("bookingDetail");
+ overlay.hidden=false;overlay.setAttribute("aria-hidden","false");
+ document.getElementById("bookingDetailClose").focus();
+}
+document.getElementById("bookingDetailClose").addEventListener("click",closeBookingDetail);
+document.getElementById("bookingDetail").addEventListener("click",e=>{if(e.target===e.currentTarget)closeBookingDetail()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("bookingDetail").hidden)closeBookingDetail()});
 function render(bookings){
  document.getElementById("dayTitle").textContent="Tagesbelegung · "+dayLabel(dateEl.value);
  const rows=document.getElementById("rows");rows.innerHTML="";
@@ -915,6 +961,10 @@ function render(bookings){
      const end=b.end??(b.start+BLOCK);
      el.innerHTML=`<span class="project-team">${esc(b.age||"Turnier")}</span><span class="project-time">${esc(fmtMin(b.start).replace(" Uhr",""))}–${esc(fmtMin(end).replace(" Uhr",""))}</span>`;
      el.title=`${p} | ${fmtMin(b.start)} bis ${fmtMin(end)} | ${b.training?"Training":b.manual?"Fußballschule":"Liga: "+(b.age||"")} | ${b.trainer||""}${b.kennung?" | Spielkennung: "+b.kennung:""}`;
+     el.setAttribute("role","button");el.setAttribute("tabindex","0");
+     el.setAttribute("aria-label",`${b.age||"Belegung"}, ${fmtMin(b.start)} bis ${fmtMin(end)}, Details öffnen`);
+     el.addEventListener("click",()=>openBookingDetail(b,p));
+     el.addEventListener("keydown",ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();openBookingDetail(b,p)}});
      track.appendChild(el);
    }
    row.append(label,track);rows.appendChild(row);
