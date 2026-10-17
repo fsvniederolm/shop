@@ -46,12 +46,12 @@ button{cursor:pointer}.primary{width:100%;margin-top:20px;padding:15px;border:0;
 <div class="grid"><div><label>Von *</label><select id="von" required></select></div><div><label>Bis *</label><select id="bis" required></select></div></div>
 <button class="primary" type="submit">XBOT reservieren</button><div class="msg" id="msg"></div></form></section>
 <section class="card"><div class="nav"><button onclick="move(-1)">‹</button><div id="month" class="month"></div><button onclick="move(1)">›</button></div><div class="week" id="calendar"></div><div class="legend">Im Kalender wird das reservierende Team angezeigt. Buchungen erfolgen im 30-Minuten-Takt, maximal 2 Stunden.</div></section>
-</div></div><a class="back" href="mein-fsv-intern.html">← Mein FSV</a><div class="version">Version 1.2</div>
+</div></div><a class="back" href="mein-fsv.html">← Mein FSV</a><div class="version">Version 1.3</div>
 <script>
 const SUPABASE_URL="https://ibhtvjaawinpcwvbwzct.supabase.co";
 const SUPABASE_KEY="sb_publishable_omPVDjNvHQ5SULxKhJQqUA_-rCJ0PL3";
 const H={apikey:SUPABASE_KEY,"Content-Type":"application/json"};
-let sb, currentSession;
+let sb, currentSession, currentUserId=null, currentRole=null;
 async function authorize(){
  try {
   sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
@@ -64,6 +64,7 @@ async function authorize(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session){location.replace('mein-fsv-login.html');return;}
   currentSession=session;
+  currentUserId=user.id; currentRole=profile.role;
   $('login').style.display='none';$('app').style.display='block';init();
  }catch(err){$('loginMsg').textContent='Anmeldung konnte nicht geprüft werden: '+err.message;}
 }
@@ -89,20 +90,29 @@ function mins(t){const [h,m]=t.split(":").map(Number);return h*60+m}
 async function getRows(start,end){let r=await fetch(`${SUPABASE_URL}/rest/v1/xbot_ausleihe?select=*&datum=gte.${start}&datum=lte.${end}&order=datum.asc,uhrzeit_von.asc`,{headers:await authHeaders()});if(!r.ok)throw Error(await r.text());return r.json()}
 async function render(){let first=new Date(cursor), start=new Date(first);start.setDate(1-((first.getDay()+6)%7));let end=new Date(start);end.setDate(start.getDate()+41);let rows=[];try{rows=await getRows(iso(start),iso(end))}catch(e){$("calendar").innerHTML="Kalender konnte nicht geladen werden.";return}
 $("month").textContent=cursor.toLocaleDateString("de-DE",{month:"long",year:"numeric"});let html=["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<div class="dow">${x}</div>`).join("");
-for(let i=0;i<42;i++){let d=new Date(start);d.setDate(start.getDate()+i);let rs=rows.filter(x=>x.datum===iso(d));let cls="day"+(d.getMonth()!=cursor.getMonth()?" muted":"")+(iso(d)===iso(new Date())?" today":"");html+=`<div class="${cls}"><div class="num">${d.getDate()}</div>${rs.map(x=>`<div class="booking"><b>${x.uhrzeit_von.slice(0,5)}–${x.uhrzeit_bis.slice(0,5)}</b>${esc(x.mannschaft)}<button class="xdel" title="Reservierung löschen" onclick="event.stopPropagation();delBooking(\'${x.id}\')">×</button></div>`).join("")}</div>`}$("calendar").innerHTML=html}
+for(let i=0;i<42;i++){let d=new Date(start);d.setDate(start.getDate()+i);let rs=rows.filter(x=>x.datum===iso(d));let cls="day"+(d.getMonth()!=cursor.getMonth()?" muted":"")+(iso(d)===iso(new Date())?" today":"");html+=`<div class="${cls}"><div class="num">${d.getDate()}</div>${rs.map(x=>`<div class="booking"><b>${x.uhrzeit_von.slice(0,5)}–${x.uhrzeit_bis.slice(0,5)}</b>${esc(x.mannschaft)}${(currentRole === "admin" || (x.owner_id && x.owner_id === currentUserId)) ? `<button class="xdel" title="Reservierung löschen" onclick="event.stopPropagation();delBooking(\'${x.id}\')">×</button>` : ""}</div>`).join("")}</div>`}$("calendar").innerHTML=html}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 async function delBooking(id){
+ // UI-Prüfung zusätzlich zur verbindlichen Supabase-RLS-Prüfung.
+ const checkResponse=await fetch(`${SUPABASE_URL}/rest/v1/xbot_ausleihe?select=id,owner_id&id=eq.${encodeURIComponent(id)}`,{headers:await authHeaders()});
+ if(!checkResponse.ok){alert('Berechtigung konnte nicht geprüft werden.');return}
+ const entry=(await checkResponse.json())[0];
+ if(!entry || !(currentRole === 'admin' || (entry.owner_id && entry.owner_id === currentUserId))){
+   alert('Du kannst nur deine eigenen Reservierungen löschen.'); return;
+ }
  if(!confirm("Diese XBOT-Reservierung wirklich löschen?"))return;
  const r=await fetch(`${SUPABASE_URL}/rest/v1/xbot_ausleihe?id=eq.${encodeURIComponent(id)}`,{
    method:"DELETE",headers:{...await authHeaders(),Prefer:"return=representation"}
  });
- if(!r.ok){alert("Reservierung konnte nicht gelöscht werden.");return}
+ if(!r.ok){alert("Reservierung konnte nicht gelöscht werden: " + await r.text());return}
+ const deleted=await r.json();
+ if(!Array.isArray(deleted)||deleted.length===0){alert("Keine Löschberechtigung für diese Reservierung.");return}
  await render();
 }
 function move(n){cursor.setMonth(cursor.getMonth()+n);render()}
 $("form").addEventListener("submit",async e=>{e.preventDefault();$("msg").textContent="Prüfe Verfügbarkeit …";let von=$("von").value,bis=$("bis").value;if(bis<=von){$("msg").textContent="„Bis“ muss nach „Von“ liegen.";return} if(mins(bis)-mins(von)>120){$("msg").textContent="Die maximale Ausleihzeit beträgt 2 Stunden.";return}
 let d=$("datum").value;let check=await getRows(d,d);if(check.some(x=>von<x.uhrzeit_bis.slice(0,5)&&bis>x.uhrzeit_von.slice(0,5))){$("msg").textContent="XBOT ist in diesem Zeitraum bereits reserviert.";return}
-let body={datum:d,uhrzeit_von:von,uhrzeit_bis:bis,vorname:$("vorname").value.trim(),nachname:$("nachname").value.trim(),mannschaft:$("mannschaft").value.trim()};
+let body={datum:d,uhrzeit_von:von,uhrzeit_bis:bis,vorname:$("vorname").value.trim(),nachname:$("nachname").value.trim(),mannschaft:$("mannschaft").value.trim(),owner_id:currentUserId};
 let r=await fetch(`${SUPABASE_URL}/rest/v1/xbot_ausleihe`,{method:"POST",headers:{...await authHeaders(),Prefer:"return=representation"},body:JSON.stringify(body)});if(!r.ok){$("msg").textContent="Reservierung fehlgeschlagen: "+await r.text();return}$("msg").textContent="XBOT wurde reserviert.";cursor=new Date(d+"T12:00:00");cursor.setDate(1);render()});
 function init(){fillTimes();$("datum").value=iso(new Date());render()}authorize();
 </script></body></html>
